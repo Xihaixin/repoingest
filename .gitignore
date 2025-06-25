@@ -1,0 +1,15 @@
+.env
+gitingest.log
+
+# config
+.vscode/
+
+
+# test directory
+.pytest_cache/
+
+# my study files
+study/
+
+# ignore __pycache__
+**/__pycache__/*
