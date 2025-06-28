@@ -1,11 +1,8 @@
 """Functions to ingest and analyze a codebase directory or single file."""
-import json
-import logging
 import warnings
 from pathlib import Path
 from typing import Tuple
 
-from gitingest.utils.logger_handler import PathEncoder
 from gitingest.config import MAX_DIRECTORY_DEPTH, MAX_FILES, MAX_TOTAL_SIZE_BYTES
 from gitingest.output_formatters import format_node
 from gitingest.query_parsing import IngestionQuery
@@ -43,14 +40,30 @@ def ingest_query(query: IngestionQuery) -> Tuple[str,str,str]:
     subpath = Path(query.subpath.strip('/')).as_posix()
     path = query.local_path / subpath
 
-    logging.info(f"ingest_query function to deal the (subpath, path): \n local_path={query.local_path} \n subpath={subpath} \n path={path} ")
     apply_gitingest_file(path, query)
 
     if not path.exists():
         raise ValueError(f"{query.slug} cannot be found")
 
-    if False:
-        pass
+    if (query.type and query.type == "blob") or query.local_path.is_file():
+        # TODO We do this wrong! We should still check the branch and commit!
+        if not path.is_file():
+            raise ValueError(f"Path {path} is not a file")
+        relative_path = path.relative_to(query.local_path)
+
+        file_node = FileSystemNode(
+            name=path.name,
+            type=FileSystemNodeType.FILE,
+            size=path.stat().st_size,
+            file_count=1,
+            path_str=str(relative_path),
+            path=path,
+        )
+
+        if not file_node.content:
+            raise ValueError(f"File {file_node.name} has no content")
+        
+        return format_node(file_node, query)
 
     root_node = FileSystemNode(
         name=path.name,
@@ -58,17 +71,6 @@ def ingest_query(query: IngestionQuery) -> Tuple[str,str,str]:
         path_str=str(path.relative_to(query.local_path)),
         path=path,
     )
-
-    log_dict = {
-        "event": "node_created",
-        "name": root_node.name,
-        "type": root_node.type.name,
-        "path_str": root_node.path_str,
-        "path": root_node.path,
-        "size": root_node.size,
-        "depth": root_node.depth
-    }
-    logging.info(f"Created file system node:\n{json.dumps(log_dict, indent=2, cls=PathEncoder)}")
 
     stats = FileSystemStats()
 
@@ -167,23 +169,18 @@ def _process_node(
         return
 
     for sub_path in node.path.iterdir():
-        logging.info(f"Dealing with sub_path:{sub_path}...")
+
         if query.ignore_patterns and _should_exclude(sub_path, query.local_path, query.ignore_patterns):
-            logging.info(f"{sub_path} is ignored by query.ignore_patterns.")
             continue
         if query.include_patterns and _should_include(sub_path, query.local_path, query.include_patterns):
-            logging.info(f"{sub_path} should be included.")
             continue
 
         if sub_path.is_symlink():
-            logging.info(f"This is a symlink path. Now dealing it...")
             _process_symlink(path=sub_path, parent_node=node, stats=stats, loacl_path=query.local_path)
         elif sub_path.is_file():
-            logging.info(f"This is a file path")
             _process_file(path=sub_path, parent_node=node,stats=stats,local_path=query.local_path)
         elif sub_path.is_dir():
 
-            logging.info("This is d directory, and we create a chile_directory_node. Then go to '_process_node'...\n")
             child_directory_node = FileSystemNode(
                 name=sub_path.name,
                 type=FileSystemNodeType.DIRECTORY,
@@ -192,9 +189,6 @@ def _process_node(
                 depth=node.depth + 1,
             )
 
-            logging.info("=================================================================")
-            logging.info(f" We are now handling with directory{child_directory_node.name}...")
-            logging.info("=================================================================")
             _process_node(
                 node=child_directory_node,
                 query=query,
@@ -204,8 +198,6 @@ def _process_node(
             node.size += child_directory_node.size
             node.file_count += child_directory_node.file_count
             node.dir_count += 1 + child_directory_node.dir_count
-
-            logging.info(f"The node:{node.name}'s children are {[child.name for child in node.children ]}")
 
         else:
             print(f"Warring:{sub_path} is an unknown file type,shipping")

@@ -1,13 +1,12 @@
 import asyncio
-import logging
-import json
+import inspect
 import shutil
 from typing import Optional, Union, Set, Tuple
 
+from gitingest.cloning import clone_repo
 from gitingest.config import TMP_BASE_PATH
 from gitingest.ingestion import ingest_query
 from gitingest.query_parsing import IngestionQuery, parse_query
-from gitingest.utils.logger_handler import PathEncoder
 
 async def ingest_async(
     source: str,
@@ -54,7 +53,6 @@ async def ingest_async(
         If `clone_repo` does not return a coroutine, or if the `source` is of an unsupported type.    
 
     '''
-    logging.info(f"Origin 'source':{source}")
     repo_cloned = False
     try:
         query: IngestionQuery = await parse_query(
@@ -64,19 +62,21 @@ async def ingest_async(
             include_patterns=include_patterns,
             ignore_patterns=exclude_patterns,
         )
-        log_dict ={
-            "event": "Parameters",
-            "url": query.url,
-            "source": source,
-            "local_path": query.local_path,
-            "id": query.id,
-            "subpath": query.subpath,
-            "type": query.type
-        }
-        logging.info(f"Begin to parsed the parameters:\n {json.dumps(log_dict,indent=2, cls=PathEncoder)}")
-        logging.info(f"The parameter 'source' has been handled in parse_query by _parse_local_dir_path, which was translated to slug : \n {query.slug} ")
 
-        if False:
+        if query.url:
+            selected_branch = branch if branch else query.branch
+            query.branch = selected_branch
+
+            clone_config = query.extract_clone_config()
+            clone_coroutine = clone_repo(clone_config)
+
+            if inspect.iscoroutine(clone_coroutine):
+                if asyncio.get_event_loop().is_running():
+                    await clone_coroutine
+                else:
+                    asyncio.run(clone_coroutine)
+            else:
+                raise TypeError("clone_repo did not return a cotoutine as expected.")
 
             repo_cloned = True
 
@@ -91,7 +91,7 @@ async def ingest_async(
     finally:
 
         if repo_cloned:
-            shutil.rmtree(TMP_BASE_PATH, ignore_error=True) 
+            shutil.rmtree(TMP_BASE_PATH, ignore_errors=True) 
 
 
 def  ingest(

@@ -4,14 +4,21 @@ import uuid
 import warnings
 from pathlib import Path
 from typing import List, Optional, Set, Union
+from urllib.parse import unquote, urlparse
 
 from gitingest.config import TMP_BASE_PATH
 from gitingest.schemas import IngestionQuery
 from gitingest.utils.exceptions import InvalidPatternError
+from gitingest.utils.git_utils import check_repo_exists, fetch_remote_branch_list
 from gitingest.utils.ignore_patterns import DEFAULT_IGNORE_PATTERNS
 from gitingest.utils.query_parser_utils import (
+    KNOW_GIT_HOSTS,
+    _get_user_and_repo_from_path,
+    _is_valid_git_commit_hash,
     _is_valid_pattern,
     _normalize_pattern,
+    _validate_host,
+    _validate_url_scheme,
 )
 
 async def parse_query(
@@ -46,10 +53,12 @@ async def parse_query(
     IngestionQuery
         A dataclass object containing the parsed details of the repository or file path.
     """
-
-    if False:
-        pass
+    # Determine the parsing method based on the source type 
+    if from_web or urlparse(source).scheme in ("https", "http") or any(h in source for h in KNOW_GIT_HOSTS):
+        # We either have a full URL or a domain-less slug
+        query = await _parse_remote_repo(source)
     else:
+        # local path scenario
         query = _parse_local_dir_path(source)
     
     ignore_patterns_set = DEFAULT_IGNORE_PATTERNS.copy()
@@ -79,6 +88,155 @@ async def parse_query(
         include_patterns=parsed_include,
 
     )
+
+async def _parse_remote_repo(source: str) -> IngestionQuery:
+    """
+    Parse a repository URL into a structured query dictionary.
+
+    If source is:
+      - A fully qualified URL (https://gitlab.com/...), parse & verify that domain
+      - A URL missing 'https://' (gitlab.com/...), add 'https://' and parse
+      - A 'slug' (like 'pandas-dev/pandas'), attempt known domains until we find one that exists.
+
+    Parameters
+    ----------
+    source : str
+        The URL or domain-less slug to parse.
+
+    Returns
+    -------
+    IngestionQuery
+        A dictionary containing the parsed details of the repository.
+    """
+    source = unquote(source)
+
+    # Attemp to parse
+    parsed_url = urlparse(source)
+
+    if parsed_url.scheme:
+        _validate_url_scheme(parsed_url.scheme)
+        _validate_host(parsed_url.netloc.lower())
+
+    else: # Will be of the form 'host/user/repo' or 'user/repo'
+        tmp_host = source.split("/")[0].lower()
+        if "." in tmp_host:
+            _validate_host(tmp_host)
+        else:
+            # No scheme, no domain => user typed "user/repo", so we'll guess the domain.
+            host = await try_domain_for_user_and_repo(*_get_user_and_repo_from_path(source)) 
+            source = f"{host}/{source}"
+
+        source = "https://" + source
+        parsed_url = urlparse(source)
+
+    host = parsed_url.netloc.lower()
+    user_name, repo_name = _get_user_and_repo_from_path(parsed_url.path)
+
+    _id = str(uuid.uuid4())
+    slug = f"{user_name}-{repo_name}"
+    local_path = TMP_BASE_PATH / _id /slug
+    url = f"https://{host}/{user_name}/{repo_name}"
+
+    parsed = IngestionQuery(
+        user_name=user_name,
+        repo_name=repo_name,
+        url=url,
+        local_path=local_path,
+        slug=slug,
+        id=_id,
+    )
+
+    remaining_parts = parsed_url.path.strip("/").split("/")[2:]
+
+    if not remaining_parts:
+        return parsed
+    
+    possible_type = remaining_parts.pop(0) # e.g. 'issues', 'pull', 'tree', 'blob'
+
+    # If no extra path parts, just return
+    if not remaining_parts:
+        return parsed
+    
+    # If this is an issues page or pull requests, return early without processing subpath
+    if remaining_parts and possible_type in ("issues", "pull"):
+        return parsed
+    
+    parsed.type = possible_type
+
+    # Commit or branch
+    commit_or_branch = remaining_parts[0]
+    if _is_valid_git_commit_hash(commit_or_branch):
+        parsed.commit = commit_or_branch
+        remaining_parts.pop(0)
+    else:
+        parsed.branch = await _config_branch_and_subpath(remaining_parts, url)
+
+    # Subpath if anything left
+    if remaining_parts:
+        parsed.subpath += "/".join(remaining_parts)
+
+    return parsed
+
+async def _config_branch_and_subpath(remaining_parts: List[str], url: str) -> Optional[str]:
+    """
+    Configure the branch and subpath based on the remaining parts of the URL.
+    Parameters
+    ----------
+    remaining_parts : List[str]
+        The remaining parts of the URL path.
+    url : str
+        The URL of the repository.
+    Returns
+    -------
+    str, optional
+        The branch name if found, otherwise None.
+    """
+    try:
+        # Fetch the list of branches from the remote repository
+        branches: List[str] = await fetch_remote_branch_list(url)
+    except RuntimeError as exc:
+        warnings.warn(f"Warning: Failed to fetch branch list: {exc}", RuntimeWarning)
+        return remaining_parts.pop(0)
+    
+    branch = []
+    while remaining_parts:
+        branch.append(remaining_parts.pop(0))
+        branch_name = "/".join(branch)
+        if branch_name in branches:
+            return branch_name
+    
+    return None
+
+
+
+async def try_domain_for_user_and_repo(user_name: str, repo_name: str) -> str:
+    """
+        Attempt to find a valid repository host for the given user_name and repo_name.
+
+    Parameters
+    ----------
+    user_name : str
+        The username or owner of the repository.
+    repo_name : str
+        The name of the repository.
+
+    Returns
+    -------
+    str
+        The domain of the valid repository host.
+
+    Raises
+    ------
+    ValueError
+        If no valid repository host is found for the given user_name and repo_name.
+    """
+
+    for domain in KNOW_GIT_HOSTS:
+        candidate = f"https://{domain}/{user_name}/{repo_name}"
+        if await check_repo_exists(candidate):
+            return domain
+    raise ValueError(f"Could not find a valid repository host for '{user_name}/{repo_name}'.")
+
 
 def _parse_local_dir_path(path_str: str) ->IngestionQuery:
     """

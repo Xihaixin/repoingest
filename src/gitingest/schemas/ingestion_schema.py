@@ -34,7 +34,7 @@ class CloneConfig:
     commit: Optional[str] = None
     branch: Optional[str] = None
     subpath: str = "/"
-    bolb: bool = False
+    blob: bool = False
 
 class IngestionQuery(BaseModel):    # pylint: disable=too-many-instance-attributes
     """
