@@ -1,5 +1,5 @@
 """Configuration for the server."""
-
+from pathlib import Path
 from typing import Dict, List
 
 from fastapi.templating import Jinja2Templates
@@ -15,4 +15,5 @@ EXAMPLE_REPOS: List[Dict[str, str]] = [
     {"name": "ApiAnalytics", "url": "https://github.com/tom-draper/api-analytics"},
 ]
 
-templates = Jinja2Templates(directory="server/templates")
+templates_dir = Path(__file__).parent / 'templates'
+templates = Jinja2Templates(directory=str(templates_dir))

@@ -100,7 +100,7 @@ async def process_query(
         context["error_message"] = f"Error: {exc}"
         if "405" in str(exc):
             context["error_message"] = (
-                "Repository not found. Please make sure it is public (pravate repositories will be supported soon)"
+                "Repository not found. Please make sure it is public (private repositories will be supported soon)"
             )
             return template_response(context=context)
         
@@ -110,7 +110,7 @@ async def process_query(
             "download full ingest to see more)\n" + content[:MAX_DISPLAY_SIZE]
         )
 
-    _print_sucess(
+    _print_success(
         url=query.url,
         max_file_size=max_file_size,
         pattern_type=pattern_type,
@@ -128,7 +128,7 @@ async def process_query(
         }
     )
 
-    return template_response(content=content)
+    return template_response(context=context)
 
 
 
@@ -206,7 +206,7 @@ def _print_error(url: str, e: Exception, max_file_size: int, pattern_type: str, 
     _print_query(url, max_file_size, pattern_type, pattern)
     print(f" | {Colors.RED}{e}{Colors.END}")
 
-def _print_sucess(url: str, max_file_size: int, pattern_type: str, pattern: str, summary: str) ->None:
+def _print_success(url: str, max_file_size: int, pattern_type: str, pattern: str, summary: str) ->None:
     """
     Print a formatted success message, including the URL, file size, pattern details, and a summary with estimated
     tokens, for debugging or logging purposes.
@@ -224,7 +224,7 @@ def _print_sucess(url: str, max_file_size: int, pattern_type: str, pattern: str,
     summary : str
         A summary of the query result, including details like estimated tokens.
     """
-    estimated_tokens = summary[summary.index("Estimated tokens:") + len("Estimated ") :]
+    estimated_tokens = summary[summary.index("Estimated tokens:") + len("Estimated tokens:") :]
     print(f"{Colors.GREEN}INFO{Colors.END}: {Colors.GREEN}<- {Colors.END}", end="")
     _print_query(url, max_file_size, pattern_type, pattern)
     print(f" | {Colors.PURPLE}{estimated_tokens}{Colors.END}")

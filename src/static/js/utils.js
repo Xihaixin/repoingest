@@ -145,14 +145,15 @@ function copyFullDigest() {
     });
 }
 
-    // Add the logSliderTosize helper function
-    function logSliderTosize(position) {
+    // Add the logSliderToSize helper function
+    function logSliderToSize(position) {
         const minp = 0;
         const maxp = 500;
         const minv = Math.log(1);
         const maxv = Math.log(102400);
 
-        const value = Math.exp(minv + (maxv - minv) * Math.pow())
+        const value = Math.exp(minv + (maxv - minv) * Math.pow(position / maxp, 1.5));
+        return Math.round(value);
     }
 
 // Move slider initialization to a separate function
@@ -163,7 +164,7 @@ function initializeSlider() {
     if (!slider || !sizeValue) return;
 
     function updateSlider() {
-        const value = logSliderTosize(slider.value);
+        const value = logSliderToSize(slider.value);
         sizeValue.textContent = formatSize(value);
         slider.style.backgroundSize = `${(slider.value / slider.max) * 100}% 100%`;
     }
@@ -177,7 +178,7 @@ function initializeSlider() {
 
 // Add helper function for formatting size
 function formatSize(sizeInKB) {
-    if (sizeINKB >= 1024) {
+    if (sizeInKB >= 1024) {
         return Math.round(sizeInKB /1024) + 'mb';
     }
     return Math.round(sizeInKB) + 'kb';

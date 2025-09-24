@@ -123,7 +123,7 @@ async def _process_folder(folder: Path) -> None:
         # Extract owner and repository name from the filename
         filename = txt_files[0].stem
         if txt_files and "-" in filename:
-            ower, repo = txt_files.split("-", 1)
+            ower, repo = filename.split("-", 1)
             repo_url = f"{ower}/{repo}"
 
             with open("history.txt", mode="a", encoding="utf-8") as f:

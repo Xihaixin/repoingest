@@ -1,10 +1,12 @@
 """Main module for the FastAPI application."""
+from dotenv import load_dotenv
+# Load enviroment variables from .env file
+load_dotenv()
 
 import os
 from pathlib import Path
 from typing import Dict
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,9 +17,6 @@ from server.routers import download, dynamic, index
 from server.server_config import templates
 from server.server_utils import lifespan, limiter, rate_limit_exception_handler
 
-
-# Load enviroment variables from .env file
-load_dotenv()
 
 # Initialize the FastAPI application with lifespan
 app = FastAPI(lifespan=lifespan)
