@@ -16,3 +16,7 @@ study/
 
 # ignore enviroment
 env/
+.venv/
+.python-version
+
+src/*.txt
