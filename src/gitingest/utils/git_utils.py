@@ -1,47 +1,40 @@
 import asyncio
+import aiohttp
 from typing import List, Tuple
 
 async def check_repo_exists(url: str) -> bool:
     """
-    Check if a Git repository exists at the provided URL.
-
-    Parameters
-    ----------
-    url : str
-        The URL of the Git repository to check.
-    Returns
-    -------
-    bool
-        True if the repository exists, False otherwise.
-
-    Raises
-    ------
-    RuntimeError
-        If the curl command returns an unexpected status code.
-    """
-    proc = await asyncio.create_subprocess_exec(
-        "curl",
-        "-I",
-        url,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    stdout, _ = await proc.communicate()
-
-    if proc.returncode != 0:
-        return False # likely unreachable or private
+     Use aiohttp to check Git repository weather exist
     
-    response = stdout.decode()
-    status_line = response.splitlines()[0].strip()
-    parts = status_line.split(" ")
-    if len(parts) >= 2:
-        status_code_str = parts[1]
-        if status_code_str in ("200", "301"):
-            return True
-        if status_code_str in ("302", "404"):
-            return False
-    raise RuntimeError(f"Unexpected status line: {status_line}")
+    Parameters:
+    -----------
+    url : str
+        git repository url
+        
+    Returns:
+    --------
+    bool
+        True: repository exist, False: doesn't exist or Network is unavailable
+    """
+    try:
+        timeout = aiohttp.ClientTimeout(total=10)
+        
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.head(url, allow_redirects=True) as response:
+                status = response.status
 
+                if status in (200, 301):
+                    return True  
+                elif status in (302, 404):
+                    return False 
+                else:
+                    # other status, you can extend it
+                    raise RuntimeError(f"Unexpected HTTP status: {status}")
+                    
+    except aiohttp.ClientError:
+        return False
+    except asyncio.TimeoutError:
+        return False
 
 async def run_command(*args: str) -> Tuple[bytes, bytes]:
     """
@@ -86,9 +79,11 @@ async def ensure_git_installed() ->None:
     """
     try:
         await run_command("git", "--version")
+        print('git exist in the environment.')
     except RuntimeError as exc:
-        raise RuntimeError("Git is not installed or not accessible. Please install Git first.") from exc
-    
+        print(f"ERROR DETAILS: {exc}")
+        msg = "Git is not installed or not accessible. Please install Git first."
+        raise RuntimeError(msg) from exc
 
 async def fetch_remote_branch_list(url: str) -> List[str]:
     """

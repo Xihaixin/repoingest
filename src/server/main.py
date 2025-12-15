@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+import sys
+import asyncio
+import uvicorn
 from pathlib import Path
 from typing import Dict
 
@@ -17,6 +20,13 @@ from server.routers import download, dynamic, index
 from server.server_config import templates
 from server.server_utils import lifespan, limiter, rate_limit_exception_handler
 
+class ProactorServer(uvicorn.Server):
+    def run(self, sockets=None):
+        # Set the event loop policy before starting the Uvicorn server (Windows only)
+        if sys.platform == "win32":
+            print("Setting ProactorEventLoopPolicy for Uvicorn server on Windows.")
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        asyncio.run(self.serve(sockets=sockets))
 
 # Initialize the FastAPI application with lifespan
 app = FastAPI(lifespan=lifespan)
@@ -37,7 +47,7 @@ if allowed_hosts:
     allowed_hosts = allowed_hosts.split(",")
 else:
     # Define the default allowed hosts for the application
-    default_allowed_hosts = ["gitingest.com", "*.gitingest.com", "localhost", "127.0.0.1"]
+    default_allowed_hosts = ["gitingest.com", "*.gitingest.com", "localhost", "127.0.0.1", "gitee.com"]
     allowed_hosts = default_allowed_hosts
 
 # Add middleware to enforce allowed hosts
@@ -101,3 +111,16 @@ app.include_router(download)
 app.include_router(dynamic)
 
 
+if __name__ == "__main__":
+    port = 8000
+    host = "127.0.0.1"
+    print(f"Starting FastAPI server with ProactorServer at http://{host}:{port}")
+    # reload=True will interfere with custom event loop policies
+    config = uvicorn.Config(
+        app="RepoIngest:app", # point to your FastAPI application case
+        host=host,
+        port=port,
+        reload=False # important
+    )
+    server = ProactorServer(config=config)
+    server.run()
