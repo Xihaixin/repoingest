@@ -4,6 +4,7 @@ import asyncio
 import math
 import shutil
 import time
+import platform
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -96,8 +97,17 @@ async def _remove_old_repositories():
             current_time = time.time()
 
             for folder in TMP_BASE_PATH.iterdir():
+                folder_stat = folder.stat()
+                if platform.system() == 'Windows':
+                    folder_time = folder_stat.st_ctime
+                else:
+                    try:
+                        folder_time = folder_stat.st_birthtime
+                    except AttributeError:
+                        folder_time = folder_stat.st_mtime
+
                 # Skip if folder is not old enough
-                if current_time - folder.stat().st_birthtime <= DELETE_REPO_AFITER:
+                if current_time - folder_time <= DELETE_REPO_AFITER:
                     continue
 
                 await _process_folder(folder)
