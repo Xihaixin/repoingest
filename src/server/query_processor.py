@@ -1,23 +1,20 @@
 """Process a query by parsing input, cloning a repository, and generating a summary."""
-from functools import partial
-
-from fastapi import Request
-from starlette.templating import _TemplateResponse
 
 from gitingest.cloning import clone_repo
 from gitingest.ingestion import ingest_query
 from gitingest.query_parsing import IngestionQuery, parse_query
-from server.server_config import EXAMPLE_REPOS, MAX_DISPLAY_SIZE, templates
-from server.server_utils import Colors, log_slider_to_size
+from server.server_config import MAX_DISPLAY_SIZE
+from server.server_utils import Colors
+from gitingest.cloning import validate_github_token
+from server.models import IngestErrorResponse, IngestResponse, IngestSuccessResponse, PatternType
 
 async def process_query(
-        request: Request,
         input_text: str,
-        slider_position: int,
-        pattern_type: str = "exclude",
+        max_file_size: int,
+        pattern_type: PatternType,
         pattern: str = "",
-        is_index: bool = False,
-) -> _TemplateResponse:
+        token: str | None = None,
+) -> IngestResponse:
     """
     Process a query by parsing input, cloning a repository, and generating a summary.
 
@@ -49,7 +46,9 @@ async def process_query(
     ValueError
         If an invalid pattern type is provided.
     """
-
+    if token:
+        validate_github_token(token)
+    
     if pattern_type == "include":
         include_patterns = pattern
         exclude_patterns = None
@@ -58,19 +57,6 @@ async def process_query(
         include_patterns = None
     else:
         raise ValueError(f"Invalid pattern type: {pattern_type}")
-    
-    template = "index.jinja" if is_index else "git.jinja"
-    template_response = partial(templates.TemplateResponse, name=template)
-    max_file_size = log_slider_to_size(slider_position)
-
-    context = {
-        "request": request,
-        "repo_url": input_text,
-        "examples": EXAMPLE_REPOS if is_index else [],
-        "default_file_size": slider_position,
-        "pattern_type": pattern_type,
-        "pattern": pattern,
-    }
 
     try:
         query: IngestionQuery = await parse_query(
@@ -86,6 +72,8 @@ async def process_query(
         clone_config = query.extract_clone_config()
         await clone_repo(clone_config)
 
+        short_repo_url = f"{query.user_name}/{query.repo_name}"
+
         summary, tree, content = ingest_query(query)
         with open(f"{clone_config.local_path}.txt", "w", encoding="utf-8") as f:
             f.write(tree + "\n" + content)
@@ -96,13 +84,6 @@ async def process_query(
         else:
             print(f"{Colors.BROWN}WARN{Colors.END}: {Colors.RED}<- {Colors.END}", end="")
             print(f"{Colors.RED}{exc}{Colors.END}")
-
-        context["error_message"] = f"Error: {exc}"
-        if "405" in str(exc):
-            context["error_message"] = (
-                "Repository not found. Please make sure it is public (private repositories will be supported soon)"
-            )
-            return template_response(context=context)
         
     if len(content) > MAX_DISPLAY_SIZE:
         content = (
@@ -118,18 +99,16 @@ async def process_query(
         summary=summary,
     )
 
-    context.update(
-        {
-            "result": True,
-            "summary": summary,
-            "tree": tree,
-            "content": content,
-            "ingest_id": query.id,
-        }
+    return IngestSuccessResponse(
+        repo_url=input_text,
+        short_repo_url= short_repo_url,
+        summary=summary,
+        tree=tree,
+        content=content,
+        default_max_file_size=max_file_size,
+        pattern_type=pattern_type,
+        pattern=pattern,
     )
-
-    return template_response(context=context)
-
 
 
 def _print_error(url: str, e: Exception, max_file_size: int, pattern_type: str, pattern: str) -> None:

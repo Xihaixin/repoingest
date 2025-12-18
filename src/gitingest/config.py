@@ -12,8 +12,7 @@ OUTPUT_FILE_NAME = 'digest.txt'
 
 SEPARATOR = "=" * 48
 
-src_path = Path(__file__).parent.parent
-load_dotenv(dotenv_path=src_path.parent / ".env", override=True)
+load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env", override=True)
 
 def get_temp_base_path() -> Path:
     if platform.system() == "Windows":

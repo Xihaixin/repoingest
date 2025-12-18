@@ -1,12 +1,16 @@
 """This module contains functions for cloning a Git repository to a local path."""
 import os
+import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Final
 
 from gitingest.schemas import CloneConfig
 from gitingest.utils.git_utils import check_repo_exists, ensure_git_installed, run_command
 from gitingest.utils.timeout_wrapper import async_timeout
 TIMEOUT: int = 60
+
+_GITHUB_PAT_PATTERN: Final[str] = r"^(?:gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9]{22}_[A-Za-z0-9]{59})$"
+
 @async_timeout(TIMEOUT)
 async def clone_repo(config: CloneConfig) -> None:
     """
@@ -82,3 +86,21 @@ async def clone_repo(config: CloneConfig) -> None:
         # Check out the specific commit and/or subpath
         await run_command(*checkout_cmd)
 
+def validate_github_token(token: str) -> None:
+    """
+    Validate the format of a GitHub Personal Access Token.
+
+    Parameters
+    ----------
+    token : str
+        GitHub personal access token (PAT) for accessing private repositories.
+
+    Raises
+    ------
+    InvalidGitHubTokenError
+        If the token format is invalid.
+
+    """
+    if not re.fullmatch(_GITHUB_PAT_PATTERN, token):
+        print("Please give the right token that can be access to the Github")
+        

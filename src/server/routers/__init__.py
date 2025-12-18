@@ -3,5 +3,6 @@
 from server.routers.download import router as download
 from server.routers.dynamic import router as dynamic
 from server.routers.index import router as index
+from server.routers.ingest import router as ingest
 
-__all__ = ["download", "dynamic", "index"]
+__all__ = ["download", "dynamic", "index", "ingest"]

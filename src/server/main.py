@@ -1,13 +1,13 @@
 """Main module for the FastAPI application."""
 from dotenv import load_dotenv
+from pathlib import Path
 # Load enviroment variables from .env file
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 import os
 import sys
 import asyncio
 import uvicorn
-from pathlib import Path
 from typing import Dict
 
 from fastapi import FastAPI, Request
@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from server.routers import download, dynamic, index
+from server.routers import download, dynamic, index, ingest
 from server.server_config import templates
 from server.server_utils import lifespan, limiter, rate_limit_exception_handler
 
@@ -108,6 +108,7 @@ async def robots() -> HTMLResponse:
 # Include routers for module endpoints
 app.include_router(index)
 app.include_router(download)
+app.include_router(ingest)
 app.include_router(dynamic)
 
 
