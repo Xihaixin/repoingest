@@ -4,6 +4,7 @@ import asyncio
 import math
 import shutil
 import time
+import datetime
 import platform
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -15,7 +16,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from gitingest.config import TMP_BASE_PATH
-from server.server_config import DELETE_REPO_AFITER
+from server.server_config import DELETE_REPO_AFTER
 
 # Initialize a rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -107,7 +108,7 @@ async def _remove_old_repositories():
                         folder_time = folder_stat.st_mtime
 
                 # Skip if folder is not old enough
-                if current_time - folder_time <= DELETE_REPO_AFITER:
+                if current_time - folder_time <= DELETE_REPO_AFTER:
                     continue
 
                 await _process_folder(folder)
@@ -137,7 +138,8 @@ async def _process_folder(folder: Path) -> None:
             repo_url = f"{ower}/{repo}"
 
             with open("history.txt", mode="a", encoding="utf-8") as f:
-                f.write(f"{repo_url}\n")
+                current_utc_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                f.write(f"[UTC]{current_utc_time} | {repo_url}\n")
 
     except Exception as exc:
         print(f"Error logging repository URL for {folder}: {exc}")
