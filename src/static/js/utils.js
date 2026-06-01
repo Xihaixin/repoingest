@@ -275,9 +275,10 @@ function handleSubmit(event, showLoadingSpinner = false) {
 }
 
 function copyFullDigest() {
+    const summary = document.getElementById('result-summary').value;
     const directoryStructure = document.getElementById('directory-structure-content').value;
-    const filesContent = document.querySelector('.result-text').value;
-    const fullDigest = `${directoryStructure}\n\nFiles Content:\n\n${filesContent}`;
+    const filesContent = document.getElementById('result-content').value;
+    const fullDigest = `Summary:\n${summary}\n\nDirectory Structure:\n${directoryStructure}\n\nFiles Content:\n${filesContent}`;
     const button = document.querySelector('[onclick="copyFullDigest()"]');
     const originalText = button.innerHTML;
 
@@ -299,12 +300,10 @@ function copyFullDigest() {
 }
 
 function downloadFullDigest() {
-    // Check if we have a digest_url
-    if (!window.currentDigestUrl) {
-        console.error('No digest_url available for download');
-
-        return;
-    }
+    const summary = document.getElementById('result-summary').value;
+    const directoryStructure = document.getElementById('directory-structure-content').value;
+    const filesContent = document.getElementById('result-content').value;
+    const fullDigest = `Summary:\n${summary}\n\nDirectory Structure:\n${directoryStructure}\n\nFiles Content:\n${filesContent}`;
 
     // Show feedback on the button
     const button = document.querySelector('[onclick="downloadFullDigest()"]');
@@ -317,16 +316,19 @@ function downloadFullDigest() {
         Downloading...
     `;
 
-    // Create a download link using the digest_url
-    const a = document.createElement('a');
+    // Create a blob and download it
+    const blob = new Blob([fullDigest], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
 
-    a.href = window.currentDigestUrl;
+    const a = document.createElement('a');
+    a.href = url;
     a.download = 'digest.txt';
     document.body.appendChild(a);
     a.click();
 
     // Clean up
     document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 
     // Update button to show success
     button.innerHTML = `
