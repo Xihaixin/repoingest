@@ -44,7 +44,7 @@ if allowed_hosts:
     allowed_hosts = allowed_hosts.split(",")
 else:
     # Define the default allowed hosts for the application
-    default_allowed_hosts = ["gitingest.com", "*.gitingest.com", "localhost", "127.0.0.1"]
+    default_allowed_hosts = ["repoingest.top", "*.repoingest.top", "localhost", "127.0.0.1"]
     allowed_hosts = default_allowed_hosts
 
 # Add middleware to enforce allowed hosts
@@ -91,7 +91,7 @@ async def api_docs(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("api.jinja", {"request": request})
 
 @app.get("/robots.txt")
-async def robots() -> HTMLResponse:
+async def robots() -> FileResponse:
     """
     Serve the `robots.txt` file to guide search engine crawlers.
 
@@ -100,7 +100,8 @@ async def robots() -> HTMLResponse:
     FileResponse
         The `robots.txt` file located in the static directory.
     """
-    return FileResponse("static/robots.txt")
+    robots_txt_path = static_dir / "robots.txt"
+    return FileResponse(str(robots_txt_path))
 
 # Include routers for module endpoints
 app.include_router(index)

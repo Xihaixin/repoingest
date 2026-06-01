@@ -1,4 +1,5 @@
 """This module contains functions to parse and validate input sources and patterns"""
+import hashlib
 import re
 import uuid
 import warnings
@@ -131,11 +132,12 @@ async def _parse_remote_repo(source: str) -> IngestionQuery:
 
     host = parsed_url.netloc.lower()
     user_name, repo_name = _get_user_and_repo_from_path(parsed_url.path)
-
-    _id = str(uuid.uuid4())
-    slug = f"{user_name}-{repo_name}"
-    local_path = TMP_BASE_PATH / _id /slug
     url = f"https://{host}/{user_name}/{repo_name}"
+
+    # Use URL hash for deterministic directory naming (enables cache reuse)
+    _id = hashlib.md5(url.encode()).hexdigest()[:12]
+    slug = f"{user_name}-{repo_name}"
+    local_path = TMP_BASE_PATH / _id / slug
 
     parsed = IngestionQuery(
         user_name=user_name,

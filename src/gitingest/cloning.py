@@ -67,6 +67,7 @@ async def clone_repo(config: CloneConfig) -> None:
 def _clone_repo_sync(config: CloneConfig) -> None:
     """
     Synchronous helper to clone a repository using GitPython.
+    If the target directory already exists, skip cloning (cache reuse).
     
     Parameters
     ----------
@@ -79,6 +80,11 @@ def _clone_repo_sync(config: CloneConfig) -> None:
     branch = config.branch
     partial_clone = config.subpath != "/"
     subpath = config.subpath
+
+    # Cache reuse: if directory already exists, skip cloning
+    if os.path.exists(local_path):
+        print(f"Repository cache found at {local_path}, skipping clone")
+        return
 
     try:
         clone_kwargs = {

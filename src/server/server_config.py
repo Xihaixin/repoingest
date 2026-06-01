@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 
 MAX_DISPLAY_SIZE : int = 300_000
 DEFAULT_FILE_SIZE_KB: int = 5 * 1024  # 5 mb
-DELETE_REPO_AFTER: int = 60 * 60  # In seconds
+DELETE_REPO_AFTER: int = 5 * 24 * 60 * 60  # 5 days in seconds
 MAX_FILE_SIZE_KB: int = 100 * 1024  # 100 mb
 
 EXAMPLE_REPOS: List[Dict[str, str]] = [
