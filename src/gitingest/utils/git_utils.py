@@ -2,6 +2,16 @@ import asyncio
 import aiohttp
 from typing import List, Tuple
 
+import git
+from git import GitCommandError, RemoteProgress
+
+
+class CloneProgress(RemoteProgress):
+    """Progress callback for git clone operations."""
+    def update(self, op_code, cur_count, max_count=None, message=''):
+        pass  # Silent progress
+
+
 async def check_repo_exists(url: str) -> bool:
     """
      Use aiohttp to check Git repository weather exist
@@ -36,41 +46,11 @@ async def check_repo_exists(url: str) -> bool:
     except asyncio.TimeoutError:
         return False
 
-async def run_command(*args: str) -> Tuple[bytes, bytes]:
-    """
-    Execute a shell command asynchronously and return (stdout, stderr) bytes.
 
-    Parameters
-    ----------
-    *args : str
-        The command and its arguments to execute.
-
-    Returns
-    -------
-    Tuple[bytes, bytes]
-        A tuple containing the stdout and stderr of the command.
-
-    Raises
-    ------
-    RuntimeError
-        If command exits with a non-zero status.
-    """
-    # Execute the requested command
-    proc = await asyncio.create_subprocess_exec(
-        *args,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    stdout, stderr = await proc.communicate()
-    if proc.returncode != 0:
-        error_message = stderr.decode().strip()
-        raise RuntimeError(f"Command failed:{' '.join(args)}\nError: {error_message}")
-
-    return stdout, stderr
-
-async def ensure_git_installed() ->None:
+async def ensure_git_installed() -> None:
     """
     Ensure Git is installed and accessible on the system.
+    This uses GitPython to verify that the git executable is available.
 
     Raises
     ------
@@ -78,32 +58,56 @@ async def ensure_git_installed() ->None:
         If Git is not installed or not accessible.
     """
     try:
-        await run_command("git", "--version")
+        # Run in executor to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _check_git)
         print('git exist in the environment.')
-    except RuntimeError as exc:
+    except Exception as exc:
         print(f"ERROR DETAILS: {exc}")
         msg = "Git is not installed or not accessible. Please install Git first."
         raise RuntimeError(msg) from exc
 
+
+def _check_git() -> None:
+    """Synchronous check that git is available via GitPython."""
+    try:
+        git.Git().version()
+    except GitCommandError as exc:
+        raise RuntimeError(str(exc)) from exc
+
+
 async def fetch_remote_branch_list(url: str) -> List[str]:
     """
-    Fetch the list of branches from a remote Git repository.
+    Fetch the list of branches from a remote Git repository using GitPython.
+    
     Parameters
     ----------
     url : str
         The URL of the Git repository to fetch branches from.
+        
     Returns
     -------
     List[str]
         A list of branch names available in the remote repository.
     """
-    fetch_branches_command = ["git", "ls-remote", "--heads", url]
     await ensure_git_installed()
-    stdout, _ = await run_command(*fetch_branches_command)
-    stdout_decoded = stdout.decode()
+    
+    loop = asyncio.get_event_loop()
+    branches = await loop.run_in_executor(None, _fetch_branches, url)
+    return branches
 
-    return [
-        line.split("refs/heads/", 1)[1]
-        for line in stdout_decoded.splitlines()
-        if line.strip() and "refs/heads/" in line
-    ]
+
+def _fetch_branches(url: str) -> List[str]:
+    """Synchronous helper to fetch remote branch list using GitPython."""
+    try:
+        # Use git ls-remote via GitPython to list remote heads
+        g = git.Git()
+        output = g.ls_remote("--heads", url)
+        branches = []
+        for line in output.splitlines():
+            if line.strip() and "refs/heads/" in line:
+                branch_name = line.split("refs/heads/", 1)[1]
+                branches.append(branch_name)
+        return branches
+    except GitCommandError as exc:
+        raise RuntimeError(f"Failed to fetch branch list: {exc}") from exc

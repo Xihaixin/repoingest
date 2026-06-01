@@ -603,144 +603,27 @@ wheels = [
 ]
 
 [[package]]
-name = "gitingest"
-version = "0.1.0"
-source = { virtual = "." }
+name = "gitdb"
+version = "4.0.12"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "aiohappyeyeballs" },
-    { name = "aiohttp" },
-    { name = "aiosignal" },
-    { name = "annotated-doc" },
-    { name = "annotated-types" },
-    { name = "anyio" },
-    { name = "attrs" },
-    { name = "certifi" },
-    { name = "charset-normalizer" },
-    { name = "click" },
-    { name = "colorama" },
-    { name = "deprecated" },
-    { name = "dnspython" },
-    { name = "email-validator" },
-    { name = "fastapi" },
-    { name = "fastapi-cloud-cli" },
-    { name = "fastar" },
-    { name = "frozenlist" },
-    { name = "h11" },
-    { name = "httpcore" },
-    { name = "httptools" },
-    { name = "httpx" },
-    { name = "idna" },
-    { name = "jinja2" },
-    { name = "limits" },
-    { name = "markdown-it-py" },
-    { name = "markupsafe" },
-    { name = "mdurl" },
-    { name = "multidict" },
-    { name = "packaging" },
-    { name = "propcache" },
-    { name = "pydantic" },
-    { name = "pydantic-core" },
-    { name = "pygments" },
-    { name = "python-dotenv" },
-    { name = "python-multipart" },
-    { name = "pyyaml" },
-    { name = "regex" },
-    { name = "requests" },
-    { name = "rich" },
-    { name = "rich-toolkit" },
-    { name = "rignore" },
-    { name = "sentry-sdk" },
-    { name = "shellingham" },
-    { name = "slowapi" },
-    { name = "starlette" },
-    { name = "tiktoken" },
-    { name = "tomli" },
-    { name = "typing-extensions" },
-    { name = "typing-inspection" },
-    { name = "urllib3" },
-    { name = "uvicorn" },
-    { name = "watchfiles" },
-    { name = "websockets" },
-    { name = "wrapt" },
-    { name = "yarl" },
+    { name = "smmap" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/72/94/63b0fc47eb32792c7ba1fe1b694daec9a63620db1e313033d18140c2320a/gitdb-4.0.12.tar.gz", hash = "sha256:5ef71f855d191a3326fcfbc0d5da835f26b13fbcba60c32c21091c349ffdb571", size = 394684, upload-time = "2025-01-02T07:20:46.413Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/61/5c78b91c3143ed5c14207f463aecfc8f9dbb5092fb2869baf37c273b2705/gitdb-4.0.12-py3-none-any.whl", hash = "sha256:67073e15955400952c6565cc3e707c554a4eea2e428946f7a4c162fab9bd9bcf", size = 62794, upload-time = "2025-01-02T07:20:43.624Z" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "black" },
-    { name = "fastapi-cli" },
-    { name = "flake8" },
-    { name = "rich" },
-    { name = "typer" },
+[[package]]
+name = "gitpython"
+version = "3.1.50"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gitdb" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiohappyeyeballs", specifier = "==2.6.1" },
-    { name = "aiohttp", specifier = "==3.13.2" },
-    { name = "aiosignal", specifier = "==1.4.0" },
-    { name = "annotated-doc", specifier = "==0.0.4" },
-    { name = "annotated-types", specifier = "==0.7.0" },
-    { name = "anyio", specifier = "==4.12.0" },
-    { name = "attrs", specifier = "==25.4.0" },
-    { name = "certifi", specifier = "==2025.11.12" },
-    { name = "charset-normalizer", specifier = "==3.4.4" },
-    { name = "click", specifier = "==8.3.1" },
-    { name = "colorama", specifier = "==0.4.6" },
-    { name = "deprecated", specifier = "==1.3.1" },
-    { name = "dnspython", specifier = "==2.8.0" },
-    { name = "email-validator", specifier = "==2.3.0" },
-    { name = "fastapi", specifier = "==0.124.4" },
-    { name = "fastapi-cloud-cli", specifier = "==0.6.0" },
-    { name = "fastar", specifier = "==0.8.0" },
-    { name = "frozenlist", specifier = "==1.8.0" },
-    { name = "h11", specifier = "==0.16.0" },
-    { name = "httpcore", specifier = "==1.0.9" },
-    { name = "httptools", specifier = "==0.7.1" },
-    { name = "httpx", specifier = "==0.28.1" },
-    { name = "idna", specifier = "==3.11" },
-    { name = "jinja2", specifier = "==3.1.6" },
-    { name = "limits", specifier = "==5.6.0" },
-    { name = "markdown-it-py", specifier = "==4.0.0" },
-    { name = "markupsafe", specifier = "==3.0.3" },
-    { name = "mdurl", specifier = "==0.1.2" },
-    { name = "multidict", specifier = "==6.7.0" },
-    { name = "packaging", specifier = "==25.0" },
-    { name = "propcache", specifier = "==0.4.1" },
-    { name = "pydantic", specifier = "==2.12.5" },
-    { name = "pydantic-core", specifier = "==2.41.5" },
-    { name = "pygments", specifier = "==2.19.2" },
-    { name = "python-dotenv", specifier = "==1.2.1" },
-    { name = "python-multipart", specifier = "==0.0.20" },
-    { name = "pyyaml", specifier = "==6.0.3" },
-    { name = "regex", specifier = "==2025.11.3" },
-    { name = "requests", specifier = "==2.32.5" },
-    { name = "rich", specifier = "==14.2.0" },
-    { name = "rich-toolkit", specifier = "==0.17.0" },
-    { name = "rignore", specifier = "==0.7.6" },
-    { name = "sentry-sdk", specifier = "==2.47.0" },
-    { name = "shellingham", specifier = "==1.5.4" },
-    { name = "slowapi", specifier = "==0.1.9" },
-    { name = "starlette", specifier = "==0.50.0" },
-    { name = "tiktoken", specifier = "==0.12.0" },
-    { name = "tomli", specifier = "==2.3.0" },
-    { name = "typing-extensions", specifier = "==4.15.0" },
-    { name = "typing-inspection", specifier = "==0.4.2" },
-    { name = "urllib3", specifier = "==2.6.2" },
-    { name = "uvicorn", specifier = "==0.38.0" },
-    { name = "watchfiles", specifier = "==1.1.1" },
-    { name = "websockets", specifier = "==15.0.1" },
-    { name = "wrapt", specifier = "==2.0.1" },
-    { name = "yarl", specifier = "==1.22.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "black", specifier = ">=25.12.0" },
-    { name = "fastapi-cli", specifier = ">=0.0.16" },
-    { name = "flake8", specifier = ">=7.3.0" },
-    { name = "rich", specifier = ">=14.2.0" },
-    { name = "typer", specifier = ">=0.20.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/33/f6/354ae6491228b5eb40e10d89c4d13c651fe1cf7556e35ebdded50cff57ce/gitpython-3.1.50.tar.gz", hash = "sha256:80da2d12504d52e1f998772dc5baf6e553f8d2fcfe1fcc226c9d9a2ee3372dcc", size = 219798, upload-time = "2026-05-06T04:01:26.571Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/7a/1c6e3562dfd8950adbb11ffbc65d21e7c89d01a6e4f137fa981056de25c5/gitpython-3.1.50-py3-none-any.whl", hash = "sha256:d352abe2908d07355014abdd21ddf798c2a961469239afec4962e9da884858f9", size = 212507, upload-time = "2026-05-06T04:01:23.799Z" },
 ]
 
 [[package]]
@@ -1526,6 +1409,149 @@ wheels = [
 ]
 
 [[package]]
+name = "repoingest"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "aiohappyeyeballs" },
+    { name = "aiohttp" },
+    { name = "aiosignal" },
+    { name = "annotated-doc" },
+    { name = "annotated-types" },
+    { name = "anyio" },
+    { name = "attrs" },
+    { name = "certifi" },
+    { name = "charset-normalizer" },
+    { name = "click" },
+    { name = "colorama" },
+    { name = "deprecated" },
+    { name = "dnspython" },
+    { name = "email-validator" },
+    { name = "fastapi" },
+    { name = "fastapi-cloud-cli" },
+    { name = "fastar" },
+    { name = "frozenlist" },
+    { name = "gitpython" },
+    { name = "h11" },
+    { name = "httpcore" },
+    { name = "httptools" },
+    { name = "httpx" },
+    { name = "idna" },
+    { name = "jinja2" },
+    { name = "limits" },
+    { name = "markdown-it-py" },
+    { name = "markupsafe" },
+    { name = "mdurl" },
+    { name = "multidict" },
+    { name = "packaging" },
+    { name = "propcache" },
+    { name = "pydantic" },
+    { name = "pydantic-core" },
+    { name = "pygments" },
+    { name = "python-dotenv" },
+    { name = "python-multipart" },
+    { name = "pyyaml" },
+    { name = "regex" },
+    { name = "requests" },
+    { name = "rich" },
+    { name = "rich-toolkit" },
+    { name = "rignore" },
+    { name = "sentry-sdk" },
+    { name = "shellingham" },
+    { name = "slowapi" },
+    { name = "starlette" },
+    { name = "tiktoken" },
+    { name = "tomli" },
+    { name = "typing-extensions" },
+    { name = "typing-inspection" },
+    { name = "urllib3" },
+    { name = "uvicorn" },
+    { name = "watchfiles" },
+    { name = "websockets" },
+    { name = "wrapt" },
+    { name = "yarl" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "black" },
+    { name = "fastapi-cli" },
+    { name = "flake8" },
+    { name = "rich" },
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohappyeyeballs", specifier = "==2.6.1" },
+    { name = "aiohttp", specifier = "==3.13.2" },
+    { name = "aiosignal", specifier = "==1.4.0" },
+    { name = "annotated-doc", specifier = "==0.0.4" },
+    { name = "annotated-types", specifier = "==0.7.0" },
+    { name = "anyio", specifier = "==4.12.0" },
+    { name = "attrs", specifier = "==25.4.0" },
+    { name = "certifi", specifier = "==2025.11.12" },
+    { name = "charset-normalizer", specifier = "==3.4.4" },
+    { name = "click", specifier = "==8.3.1" },
+    { name = "colorama", specifier = "==0.4.6" },
+    { name = "deprecated", specifier = "==1.3.1" },
+    { name = "dnspython", specifier = "==2.8.0" },
+    { name = "email-validator", specifier = "==2.3.0" },
+    { name = "fastapi", specifier = "==0.124.4" },
+    { name = "fastapi-cloud-cli", specifier = "==0.6.0" },
+    { name = "fastar", specifier = "==0.8.0" },
+    { name = "frozenlist", specifier = "==1.8.0" },
+    { name = "gitpython", specifier = ">=3.1.50" },
+    { name = "h11", specifier = "==0.16.0" },
+    { name = "httpcore", specifier = "==1.0.9" },
+    { name = "httptools", specifier = "==0.7.1" },
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "idna", specifier = "==3.11" },
+    { name = "jinja2", specifier = "==3.1.6" },
+    { name = "limits", specifier = "==5.6.0" },
+    { name = "markdown-it-py", specifier = "==4.0.0" },
+    { name = "markupsafe", specifier = "==3.0.3" },
+    { name = "mdurl", specifier = "==0.1.2" },
+    { name = "multidict", specifier = "==6.7.0" },
+    { name = "packaging", specifier = "==25.0" },
+    { name = "propcache", specifier = "==0.4.1" },
+    { name = "pydantic", specifier = "==2.12.5" },
+    { name = "pydantic-core", specifier = "==2.41.5" },
+    { name = "pygments", specifier = "==2.19.2" },
+    { name = "python-dotenv", specifier = "==1.2.1" },
+    { name = "python-multipart", specifier = "==0.0.20" },
+    { name = "pyyaml", specifier = "==6.0.3" },
+    { name = "regex", specifier = "==2025.11.3" },
+    { name = "requests", specifier = "==2.32.5" },
+    { name = "rich", specifier = "==14.2.0" },
+    { name = "rich-toolkit", specifier = "==0.17.0" },
+    { name = "rignore", specifier = "==0.7.6" },
+    { name = "sentry-sdk", specifier = "==2.47.0" },
+    { name = "shellingham", specifier = "==1.5.4" },
+    { name = "slowapi", specifier = "==0.1.9" },
+    { name = "starlette", specifier = "==0.50.0" },
+    { name = "tiktoken", specifier = "==0.12.0" },
+    { name = "tomli", specifier = "==2.3.0" },
+    { name = "typing-extensions", specifier = "==4.15.0" },
+    { name = "typing-inspection", specifier = "==0.4.2" },
+    { name = "urllib3", specifier = "==2.6.2" },
+    { name = "uvicorn", specifier = "==0.38.0" },
+    { name = "watchfiles", specifier = "==1.1.1" },
+    { name = "websockets", specifier = "==15.0.1" },
+    { name = "wrapt", specifier = "==2.0.1" },
+    { name = "yarl", specifier = "==1.22.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "black", specifier = ">=25.12.0" },
+    { name = "fastapi-cli", specifier = ">=0.0.16" },
+    { name = "flake8", specifier = ">=7.3.0" },
+    { name = "rich", specifier = ">=14.2.0" },
+    { name = "typer", specifier = ">=0.20.0" },
+]
+
+[[package]]
 name = "requests"
 version = "2.32.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1694,6 +1720,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a0/99/adfc7f94ca024736f061257d39118e1542bade7a52e86415a4c4ae92d8ff/slowapi-0.1.9.tar.gz", hash = "sha256:639192d0f1ca01b1c6d95bf6c71d794c3a9ee189855337b4821f7f457dddad77", size = 14028, upload-time = "2024-02-05T12:11:52.13Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2b/bb/f71c4b7d7e7eb3fc1e8c0458a8979b912f40b58002b9fbf37729b8cb464b/slowapi-0.1.9-py3-none-any.whl", hash = "sha256:cfad116cfb84ad9d763ee155c1e5c5cbf00b0d47399a769b227865f5df576e36", size = 14670, upload-time = "2024-02-05T12:11:50.898Z" },
+]
+
+[[package]]
+name = "smmap"
+version = "5.0.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1f/ea/49c993d6dfdd7338c9b1000a0f36817ed7ec84577ae2e52f890d1a4ff909/smmap-5.0.3.tar.gz", hash = "sha256:4d9debb8b99007ae47165abc08670bd74cb74b5227dda7f643eccc4e9eb5642c", size = 22506, upload-time = "2026-03-09T03:43:26.1Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/d4/59e74daffcb57a07668852eeeb6035af9f32cbfd7a1d2511f17d2fe6a738/smmap-5.0.3-py3-none-any.whl", hash = "sha256:c106e05d5a61449cf6ba9a1e650227ecfb141590d2a98412103ff35d89fc7b2f", size = 24390, upload-time = "2026-03-09T03:43:24.361Z" },
 ]
 
 [[package]]

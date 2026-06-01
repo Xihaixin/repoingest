@@ -1,15 +1,20 @@
 """This module contains functions for cloning a Git repository to a local path."""
+import asyncio
 import os
 import re
 from pathlib import Path
 from typing import Optional, Final
 
+from git import Repo, GitCommandError
+
 from gitingest.schemas import CloneConfig
-from gitingest.utils.git_utils import check_repo_exists, ensure_git_installed, run_command
+from gitingest.utils.git_utils import check_repo_exists, ensure_git_installed, CloneProgress
 from gitingest.utils.timeout_wrapper import async_timeout
-TIMEOUT: int = 60
+
+TIMEOUT: int = 300  # 5 minutes timeout for larger repos
 
 _GITHUB_PAT_PATTERN: Final[str] = r"^(?:gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9]{22}_[A-Za-z0-9]{59})$"
+
 
 @async_timeout(TIMEOUT)
 async def clone_repo(config: CloneConfig) -> None:
@@ -52,39 +57,61 @@ async def clone_repo(config: CloneConfig) -> None:
     if not await check_repo_exists(url):
         raise ValueError("Repository not found, make sure it is public")
     
-    clone_cmd = ["git", "clone", "--single-branch"]
-    # TODO re-enable --recurse-submodules
-
-    if partial_clone:
-        clone_cmd += ["--filter=blob:none", "--sparse"]
-
-    if not commit:
-        clone_cmd += ["--depth=1"]
-        if branch and branch.lower() not in ("main", "master"):
-            clone_cmd += ["--branch", branch]
-
-    clone_cmd += [url, local_path]
-
-    # Clone the repository
     await ensure_git_installed()
-    await run_command(*clone_cmd)
+    
+    # Use GitPython to clone the repository in a thread executor
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _clone_repo_sync, config)
 
-    if commit or partial_clone:
-        checkout_cmd = ["git", "-C", local_path]
+
+def _clone_repo_sync(config: CloneConfig) -> None:
+    """
+    Synchronous helper to clone a repository using GitPython.
+    
+    Parameters
+    ----------
+    config : CloneConfig
+        The clone configuration.
+    """
+    url = config.url
+    local_path = config.local_path
+    commit = config.commit
+    branch = config.branch
+    partial_clone = config.subpath != "/"
+    subpath = config.subpath
+
+    try:
+        clone_kwargs = {
+            "single_branch": True,
+            "progress": CloneProgress(),
+        }
+
+        if not commit:
+            clone_kwargs["depth"] = 1
+            if branch and branch.lower() not in ("main", "master"):
+                clone_kwargs["branch"] = branch
 
         if partial_clone:
-            subpath = config.subpath.lstrip("/")
+            # Remove depth for sparse checkout compatibility
+            clone_kwargs.pop("depth", None)
+            # Clone the repository
+            repo = Repo.clone_from(url, local_path, **clone_kwargs)
+            
+            # Configure sparse checkout
+            sparse_path = subpath.lstrip("/")
             if config.blob:
-                # When ingesting from a file url (blob/branch/path/file.txt), we need to remove the file name.
-                subpath = str(Path(subpath).parent.as_posix())
+                sparse_path = str(Path(sparse_path).parent.as_posix())
+            
+            repo.git.sparse_checkout("set", sparse_path)
+        else:
+            repo = Repo.clone_from(url, local_path, **clone_kwargs)
 
-            checkout_cmd += ["sparse-checkout", "set", subpath]
-        
         if commit:
-            checkout_cmd += ["checkout", commit]
+            repo.git.checkout(commit)
 
-        # Check out the specific commit and/or subpath
-        await run_command(*checkout_cmd)
+    except GitCommandError as exc:
+        raise RuntimeError(f"Git operation failed: {exc}") from exc
+
 
 def validate_github_token(token: str) -> None:
     """
@@ -103,4 +130,3 @@ def validate_github_token(token: str) -> None:
     """
     if not re.fullmatch(_GITHUB_PAT_PATTERN, token):
         print("Please give the right token that can be access to the Github")
-        

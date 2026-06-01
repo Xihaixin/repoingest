@@ -1,5 +1,5 @@
 [project]
-name = "gitingest"
+name = "repoingest"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -23,6 +23,7 @@ dependencies = [
     "fastapi-cloud-cli==0.6.0",
     "fastar==0.8.0",
     "frozenlist==1.8.0",
+    "gitpython>=3.1.50",
     "h11==0.16.0",
     "httpcore==1.0.9",
     "httptools==0.7.1",

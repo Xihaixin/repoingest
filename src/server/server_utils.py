@@ -17,6 +17,7 @@ from slowapi.util import get_remote_address
 
 from gitingest.config import TMP_BASE_PATH
 from server.server_config import DELETE_REPO_AFTER
+from gitingest.utils.git_utils import ensure_git_installed
 
 # Initialize a rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -65,7 +66,7 @@ async def lifespan(_: FastAPI):
         Yields control back to the FastAPI application while the background task runs.
     """
     task = asyncio.create_task(_remove_old_repositories())
-
+    await ensure_git_installed()
     yield
     # Cancel the background task shutdown
     task.cancel()
@@ -98,6 +99,9 @@ async def _remove_old_repositories():
             current_time = time.time()
 
             for folder in TMP_BASE_PATH.iterdir():
+                if not any(folder.iterdir()):
+                    folder.rmdir()
+                    continue
                 folder_stat = folder.stat()
                 if platform.system() == 'Windows':
                     folder_time = folder_stat.st_ctime
@@ -131,15 +135,16 @@ async def _process_folder(folder: Path) -> None:
     try:
         txt_files = [f for f in folder.iterdir() if f.suffix == ".txt"]
 
-        # Extract owner and repository name from the filename
-        filename = txt_files[0].stem
-        if txt_files and "-" in filename:
-            ower, repo = filename.split("-", 1)
-            repo_url = f"{ower}/{repo}"
+        if txt_files:
+            # Extract owner and repository name from the filename
+            filename = txt_files[0].stem
+            if txt_files and "-" in filename:
+                owner, repo = filename.split("-", 1)
+                repo_url = f"{owner}/{repo}"
 
-            with open("history.txt", mode="a", encoding="utf-8") as f:
-                current_utc_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-                f.write(f"[UTC]{current_utc_time} | {repo_url}\n")
+                with open("history.txt", mode="a", encoding="utf-8") as f:
+                    current_utc_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                    f.write(f"[UTC]{current_utc_time} | {repo_url}\n")
 
     except Exception as exc:
         print(f"Error logging repository URL for {folder}: {exc}")
