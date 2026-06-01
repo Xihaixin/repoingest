@@ -90,6 +90,20 @@ async def api_docs(request: Request) -> HTMLResponse:
     """
     return templates.TemplateResponse("api.jinja", {"request": request})
 
+@app.get("/llms.txt")
+async def llms() -> FileResponse:
+    """
+    Serve the `llms.txt` file for AI agents to read.
+
+    Returns
+    -------
+    FileResponse
+        The `llms.txt` file located in the static directory.
+    """
+    llms_txt_path = static_dir / "llms.txt"
+    return FileResponse(str(llms_txt_path))
+
+
 @app.get("/robots.txt")
 async def robots() -> FileResponse:
     """

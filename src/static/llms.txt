@@ -1,6 +1,6 @@
-# GitIngest – **AI Agent Integration Guide**
+# Repoingest – **AI Agent Integration Guide**
 
-Turn any Git repository into a prompt-ready text digest. GitIngest fetches, cleans, and formats source code so AI agents and Large Language Models can reason over complete projects programmatically.
+Turn any Git repository into a prompt-ready text digest. Repoingest fetches, cleans, and formats source code so AI agents and Large Language Models can reason over complete projects programmatically.
 
 **🤖 For AI Agents**: Use CLI or Python package for automated integration. Web UI is designed for human interaction only.
 
@@ -43,11 +43,12 @@ pip install gitingest[dev,server]
 gitingest --version
 
 # Test Python package
-python -c "from gitingest import ingest; print('GitIngest installed successfully')"
+python -c "from gitingest import ingest; print('Repoingest installed successfully')"
 
 # Quick functionality test
 gitingest https://github.com/octocat/Hello-World -o test_output.txt
 ```
+
 
 ---
 ## 2. Quick-Start for AI Agents
@@ -55,12 +56,12 @@ gitingest https://github.com/octocat/Hello-World -o test_output.txt
 |--------|----------|-----------|
 | **CLI** | Scripts, automation, pipelines | `gitingest https://github.com/user/repo -o - \| your-llm` |
 | **Python** | Code integration, notebooks, async tasks | `from gitingest import ingest; s,t,c = ingest('repo-url'); process(c)` |
-| **URL Hack** | Quick web scraping (limited) | Replace `github.com` → `gitingest.com` in any GitHub URL |
+| **URL Hack** | Quick web scraping (limited) | Replace `github.com` → `repoingest.top` in any GitHub URL |
 | **Web UI** | **Human use only** | ~~Not recommended for AI agents~~ |
 
 ---
 ## 3. Output Format for AI Processing
-GitIngest returns **structured plain-text** optimized for LLM consumption with three distinct sections:
+Repoingest returns **structured plain-text** optimized for LLM consumption with three distinct sections:
 
 ### 3.1 Repository Summary
 ```
@@ -250,7 +251,7 @@ def analyze_without_deps(repo_url: str):
 - **Pattern Filtering**: Use `include_patterns` and `exclude_patterns` lists
 
 ### 4.3 Web UI (❌ Not for AI Agents)
-The web interface at `https://gitingest.com` is designed for **human interaction only**.
+The web interface at `https://repoingest.top` is designed for **human interaction only**.
 
 **Why AI agents should avoid the web UI**:
 - Requires manual interaction and browser automation
@@ -357,9 +358,8 @@ def ingest_with_token_rotation(repo_url: str, token_manager):
 
 ---
 ## 7. Support & Resources for AI Developers
-* **Web UI official instance**: https://gitingest.com
-* **GitHub Repository**: https://github.com/coderamp-labs/gitingest
-* **Python Package**: https://pypi.org/project/gitingest/
-* **Community Support**: https://discord.gg/zerRaGK9EC
+* **Web UI official instance**: https://repoingest.top
+* **Gitee Repository**: https://gitee.com/xihaishen/repoingest
+* **Community Support**: https://discord.gg/YsBgcuucBN
 
-_GitIngest – Purpose-built for AI agents to understand entire codebases programmatically._
+_Repoingest – Purpose-built for AI agents to understand entire codebases programmatically._
