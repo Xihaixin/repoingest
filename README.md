@@ -111,7 +111,7 @@ summary, tree, content = await ingest_async("path/to/directory")
   
 ### 技术类贡献
 
-repoingest 致力于为首次贡献者提供友好的环境，代码库基于简单的 Python 和 HTML 构建。如果在代码开发过程中需要帮助，可在 [Discord](https://discord.com/invite/zerRaGK9EC) 上联系我们。关于提交拉取请求（Pull Request）的详细说明，请参考 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+repoingest 致力于为首次贡献者提供友好的环境，代码库基于简单的 Python 和 HTML 构建。如果在代码开发过程中需要帮助，可在 [Discord](https://discord.gg/YsBgcuucBN) OR [小红书]( https://xhslink.com/m/6l7fGLDntnI)上联系我们。关于提交拉取请求（Pull Request）的详细说明，请参考 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 ## 🛠️ 技术栈
 

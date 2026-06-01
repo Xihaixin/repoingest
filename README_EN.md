@@ -108,7 +108,7 @@ If deploying on a domain, specify allowed hostnames via the `ALLOWED_HOSTS` envi
 
 ### Technical Contributions
 
-repoingest is committed to providing a friendly environment for first-time contributors. The codebase is built with simple Python and HTML. If you need help during development, reach out to us on [Discord](https://discord.com/invite/zerRaGK9EC). For detailed instructions on submitting a Pull Request, please refer to [CONTRIBUTING.md](./CONTRIBUTING.md).
+repoingest is committed to providing a friendly environment for first-time contributors. The codebase is built with simple Python and HTML. If you need help during development, reach out to us on [haishen](https://discord.gg/YsBgcuucBN) OR [xiaohongshu]( https://xhslink.com/m/6l7fGLDntnI). For detailed instructions on submitting a Pull Request, please refer to [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## 🛠️ Tech Stack
 
