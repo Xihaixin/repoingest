@@ -75,7 +75,7 @@ class IngestionQuery(BaseModel):    # pylint: disable=too-many-instance-attribut
 
         return CloneConfig(
             url=self.url,
-            local_path=self.local_path,
+            local_path=str(self.local_path),
             commit=self.commit,
             branch=self.branch,
             subpath=self.subpath,

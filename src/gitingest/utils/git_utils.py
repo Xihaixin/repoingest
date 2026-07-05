@@ -65,7 +65,9 @@ async def check_repo_exists(url: str) -> bool:
         probe_url,
     )
 
-    timeout = aiohttp.ClientTimeout(total=30)
+    # Use a generous timeout (60s) because connections to GitHub/GitLab
+    # from some regions (e.g. China) can be very slow.
+    timeout = aiohttp.ClientTimeout(total=60)
     start_time = time.monotonic()
 
     try:
@@ -169,11 +171,13 @@ async def check_repo_exists(url: str) -> bool:
     except asyncio.TimeoutError:
         elapsed = time.monotonic() - start_time
         logger.error(
-            "Timeout probing repository [%s] (%.2fs, timeout=30s)",
+            "Timeout probing repository [%s] (%.2fs, timeout=60s)",
             url,
             elapsed,
         )
-        raise RuntimeError(f"Timeout while checking repository: {url}")
+        raise RuntimeError(
+            f"Timeout while checking repository (network may be slow): {url}"
+        )
 
     except aiohttp.ClientConnectorError as exc:
         elapsed = time.monotonic() - start_time

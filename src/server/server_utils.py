@@ -70,7 +70,6 @@ async def lifespan(_: FastAPI):
     """
     logger.info("Starting server lifecycle: initializing Git check and cleanup task")
     task = asyncio.create_task(_remove_old_repositories())
-    await ensure_git_installed()
     yield
     logger.info("Shutting down server lifecycle: cancelling cleanup task")
     task.cancel()

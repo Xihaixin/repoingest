@@ -1,15 +1,10 @@
 """Ingest endpoint for the API."""
 
-from typing import Union
-from uuid import UUID
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
-from fastapi import APIRouter, HTTPException, Request, status
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
-
-from gitingest.config import TMP_BASE_PATH
 from server.models import IngestRequest
 from server.routers_utils import COMMON_INGEST_RESPONSES, _perform_ingestion
-from server.server_config import DEFAULT_FILE_SIZE_KB
 from server.server_utils import limiter
 
 router = APIRouter()
