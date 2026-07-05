@@ -2,6 +2,7 @@
 import asyncio
 import os
 import re
+import time
 from pathlib import Path
 from typing import Optional, Final
 
@@ -78,9 +79,19 @@ async def clone_repo(config: CloneConfig) -> None:
     await ensure_git_installed()
 
     # Use GitPython to clone the repository in a thread executor
-    logger.info("Starting clone for %s", url)
+    logger.info(
+        "Starting clone for %s [branch=%s, commit=%s, partial=%s, depth=%s]",
+        url,
+        branch or "default",
+        commit or "HEAD",
+        partial_clone,
+        1 if not commit else "full",
+    )
+    clone_start = time.monotonic()
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, _clone_repo_sync, config)
+    clone_elapsed = time.monotonic() - clone_start
+    logger.info("Clone completed in %.2fs for %s", clone_elapsed, url)
 
 
 def _clone_repo_sync(config: CloneConfig) -> None:
@@ -139,8 +150,23 @@ def _clone_repo_sync(config: CloneConfig) -> None:
         logger.info("Repository cloned successfully to %s", local_path)
 
     except GitCommandError as exc:
-        logger.error("Git operation failed for %s: %s", url, exc)
-        raise RuntimeError(f"Git operation failed: {exc}") from exc
+        # GitCommandError carries stderr – this is the actual error from Git
+        git_status = getattr(exc, "status", "?")
+        git_stderr = (getattr(exc, "stderr", None) or "").strip()
+        git_cmd = " ".join(getattr(exc, "command", ["git", "?"]))
+
+        logger.error(
+            "Git operation FAILED for %s (exit code %s)\n"
+            "  command: %s\n"
+            "  stderr: %s",
+            url,
+            git_status,
+            git_cmd,
+            git_stderr or "(empty — check system Git configuration)",
+        )
+        raise RuntimeError(
+            f"Git operation failed (exit code {git_status}): {git_stderr or str(exc)}"
+        ) from exc
 
 
 def validate_github_token(token: str) -> None:
