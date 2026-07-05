@@ -16,8 +16,18 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 # ── Logging MUST be configured before any other import that uses it ──
 from gitingest.utils.logger import setup_logging, get_logger
 
-setup_logging()
+# Determine a sensible default log file path
+_log_dir = Path(__file__).parent.parent / "logs"
+_log_dir.mkdir(parents=True, exist_ok=True)
+_default_log_file = str(_log_dir / "repoingest.log")
+
+# Environment variable takes precedence, then fallback to default path
+_log_file = os.getenv("REPOINGEST_LOG_FILE") or _default_log_file
+
+setup_logging(log_file=_log_file)
 logger = get_logger("server")
+
+logger.info("Logging to file: %s", _log_file)
 
 # Load environment variables from .env file
 load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")

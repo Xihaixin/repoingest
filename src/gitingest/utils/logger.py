@@ -58,13 +58,23 @@ _LEVEL_COLORS = {
 
 
 class _ColoredFormatter(logging.Formatter):
-    """Custom formatter that adds ANSI color codes to log level names."""
+    """Custom formatter that adds ANSI color codes to log level names.
+
+    .. important::
+
+       This formatter **restores** ``record.levelname`` after formatting so that
+       other handlers attached to the same logger (e.g. a file handler) do **not**
+       see ANSI-escaped level names in their output.
+    """
 
     def format(self, record: logging.LogRecord) -> str:
-        level_name = record.levelname
-        color = _LEVEL_COLORS.get(level_name, "")
-        record.levelname = f"{color}{level_name}{_LogColors.END}"
-        return super().format(record)
+        original_levelname = record.levelname
+        color = _LEVEL_COLORS.get(original_levelname, "")
+        record.levelname = f"{color}{original_levelname}{_LogColors.END}"
+        try:
+            return super().format(record)
+        finally:
+            record.levelname = original_levelname
 
 
 # ── Module-level sentinel to ensure setup runs only once ──
@@ -116,12 +126,12 @@ def setup_logging(
 
     if sys.stdout.isatty():
         formatter = _ColoredFormatter(
-            "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+            "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
             datefmt="%H:%M:%S",
         )
     else:
         formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+            "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
     console_handler.setFormatter(formatter)
@@ -133,7 +143,7 @@ def setup_logging(
         file_handler = logging.FileHandler(file_path, encoding="utf-8")
         file_handler.setLevel(logging.DEBUG)
         file_formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+            "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
         file_handler.setFormatter(file_formatter)

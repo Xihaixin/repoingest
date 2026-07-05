@@ -20,7 +20,7 @@ EXAMPLE_REPOS: List[Dict[str, str]] = [
 
 # Version and repository configuration
 APP_REPOSITORY = os.getenv("APP_REPOSITORY", "https://github.com/coderamp-labs/gitingest")
-APP_VERSION = os.getenv("APP_VERSION", "unknown")
+APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 APP_VERSION_URL = os.getenv("APP_VERSION_URL", "https://github.com/coderamp-labs/gitingest")
 
 def get_version_info() -> dict[str, str]:
