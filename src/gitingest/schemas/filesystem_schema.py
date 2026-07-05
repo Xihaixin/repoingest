@@ -103,7 +103,7 @@ class FileSystemNode:
         str
             The content of the file, or an error message if the file could not be read.
         
-        Rsises
+        Raises
         ------
         ValueError
             If the node is a directory.

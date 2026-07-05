@@ -20,8 +20,8 @@ def test_run_ingest_query(temp_directory: Path, sample_query: IngestionQuery) ->
 
     summary, _, content = ingest_query(sample_query)
 
-    assert "Repsoitory: test_user/test_repo" in summary
-    assert "File analyzed: 8" in summary
+    assert "Repository: test_user/test_repo" in summary
+    assert "Files analyzed: 8" in summary
 
     # Check presence of key files in the content
     assert "src.subfile1.txt" in content

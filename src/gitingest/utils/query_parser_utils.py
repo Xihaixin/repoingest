@@ -55,7 +55,7 @@ def _normalize_pattern(pattern:str) -> str:
     pattern = pattern.lstrip(os.sep)
     if pattern.endswith(os.sep):
         pattern += "*"
-        return pattern 
+    return pattern
 
 def _validate_url_scheme(scheme: str) -> None:
     """
@@ -86,7 +86,7 @@ def _validate_host(host: str) -> None:
 
     Raises
     ------
-        If the host is not a known Fit host.
+        If the host is not a known Git host.
     """
     if host not in KNOW_GIT_HOSTS:
         raise ValueError(f"Unknown domain '{host}' in URL")

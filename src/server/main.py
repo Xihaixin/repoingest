@@ -1,20 +1,26 @@
 """Main module for the FastAPI application."""
-from dotenv import load_dotenv
-from pathlib import Path
-# Load enviroment variables from .env file
-load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
-
 import os
 import sys
 import asyncio
 import uvicorn
+from pathlib import Path
 from typing import Dict
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+# ── Logging MUST be configured before any other import that uses it ──
+from gitingest.utils.logger import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger("server")
+
+# Load environment variables from .env file
+load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 from server.routers import download, dynamic, index, ingest
 from server.server_config import templates
@@ -22,7 +28,7 @@ from server.server_utils import lifespan, limiter, rate_limit_exception_handler
 
 
 if sys.platform == "win32":
-    print("Setting ProactorEventLoopPolicy for Uvicorn server on Windows.")
+    logger.info("Setting ProactorEventLoopPolicy for Uvicorn server on Windows.")
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # Initialize the FastAPI application with lifespan
@@ -47,15 +53,17 @@ else:
     default_allowed_hosts = ["repoingest.top", "*.repoingest.top", "localhost", "127.0.0.1"]
     allowed_hosts = default_allowed_hosts
 
+logger.debug("Allowed hosts: %s", allowed_hosts)
+
 # Add middleware to enforce allowed hosts
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
+
 @app.get("/health")
-async def heath_check() -> Dict[str, str]:
-    """
-    
-    """
+async def health_check() -> Dict[str, str]:
+    """Health check endpoint."""
     return {"status": "healthy"}
+
 
 @app.head("/")
 async def head_root() -> HTMLResponse:
@@ -90,6 +98,7 @@ async def api_docs(request: Request) -> HTMLResponse:
     """
     return templates.TemplateResponse("api.jinja", {"request": request})
 
+
 @app.get("/llms.txt")
 async def llms() -> FileResponse:
     """
@@ -117,6 +126,7 @@ async def robots() -> FileResponse:
     robots_txt_path = static_dir / "robots.txt"
     return FileResponse(str(robots_txt_path))
 
+
 # Include routers for module endpoints
 app.include_router(index)
 app.include_router(download)
@@ -124,20 +134,19 @@ app.include_router(ingest)
 app.include_router(dynamic)
 
 
-if __name__ == "__main__":  
-    port = int(os.getenv("REPOINGEST_PORT", 8000))  
+if __name__ == "__main__":
+    port = int(os.getenv("REPOINGEST_PORT", 8000))
     host = os.getenv("REPOINGEST_HOST", "127.0.0.1")
-    print(f"Starting FastAPI server at http://{host}:{port}")
+    logger.info("Starting FastAPI server at http://%s:%s", host, port)
 
     config = uvicorn.Config(
-        app=app,  
+        app=app,
         host=host,
         port=port,
-        reload=False,  
-        loop="asyncio"  
+        reload=False,
+        loop="asyncio",
     )
-    
+
     server = uvicorn.Server(config=config)
     server.run()
-
     

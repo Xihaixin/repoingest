@@ -1,50 +1,203 @@
 import asyncio
+import time
 import aiohttp
-from typing import List, Tuple
+from typing import List
 
 import git
 from git import GitCommandError, RemoteProgress
 
+from gitingest.utils.logger import get_logger
+
+logger = get_logger("git_utils")
+
+# Default headers to mimic a legitimate Git client
+_GIT_HTTP_HEADERS: dict[str, str] = {
+    "User-Agent": "git/2.43.0",
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate",
+}
+
 
 class CloneProgress(RemoteProgress):
     """Progress callback for git clone operations."""
-    def update(self, op_code, cur_count, max_count=None, message=''):
+
+    def update(self, op_code, cur_count, max_count=None, message=""):
         pass  # Silent progress
 
 
 async def check_repo_exists(url: str) -> bool:
     """
-     Use aiohttp to check Git repository weather exist
-    
-    Parameters:
-    -----------
-    url : str
-        git repository url
-        
-    Returns:
-    --------
-    bool
-        True: repository exist, False: doesn't exist or Network is unavailable
-    """
-    try:
-        timeout = aiohttp.ClientTimeout(total=10)
-        
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.head(url, allow_redirects=True) as response:
-                status = response.status
+    Check whether a remote Git repository exists and is accessible via HTTP(S).
 
-                if status in (200, 301):
-                    return True  
-                elif status in (302, 404):
-                    return False 
-                else:
-                    # other status, you can extend it
-                    raise RuntimeError(f"Unexpected HTTP status: {status}")
-                    
-    except aiohttp.ClientError:
-        return False
+    This function probes the **Git smart‑protocol endpoint** (``info/refs``)
+    rather than the web‑UI landing page, which gives a reliable answer for
+    Git‑hosting platforms (GitHub, GitLab, Bitbucket, Gitee, …).
+
+    Parameters
+    ----------
+    url : str
+        Git repository URL, e.g. ``https://github.com/user/repo``.
+
+    Returns
+    -------
+    bool
+        ``True`` if the repository exists and is reachable;
+        ``False`` if the repository definitely does not exist or is private.
+
+    Raises
+    ------
+    RuntimeError
+        When an unexpected HTTP status (e.g. 500, 403) is encountered,
+        or when a network error prevents the check from completing.
+    """
+    # ── 1. Normalise the URL ──────────────────────────────────────────
+    # Git hosting platforms expect the ".git" suffix for the smart-
+    # protocol endpoint; add it if missing.
+    url = url.rstrip("/")
+    if not url.endswith(".git"):
+        url += ".git"
+
+    # Smart‑protocol endpoint
+    probe_url = f"{url}/info/refs?service=git-upload-pack"
+
+    logger.info(
+        "Probing repository existence via Git smart protocol: %s",
+        probe_url,
+    )
+
+    timeout = aiohttp.ClientTimeout(total=30)
+    start_time = time.monotonic()
+
+    try:
+        async with aiohttp.ClientSession(
+            timeout=timeout, headers=_GIT_HTTP_HEADERS
+        ) as session:
+            async with session.get(probe_url, allow_redirects=True) as response:
+                elapsed = time.monotonic() - start_time
+                status = response.status
+                content_type = response.headers.get("Content-Type", "N/A")
+                content_length = response.headers.get("Content-Length", "N/A")
+
+                logger.debug(
+                    "Repository probe responded [status=%d, type=%s, length=%s, elapsed=%.2fs]",
+                    status,
+                    content_type,
+                    content_length,
+                    elapsed,
+                )
+
+                # ── 2. Status‑code interpretation ──────────────────
+                # 200 OK – the smart‑protocol endpoint returned refs
+                if status == 200:
+                    logger.info(
+                        "Repository EXISTS [%s] (200, %.2fs)", url, elapsed
+                    )
+                    return True
+
+                # 301 Moved Permanently – follow redirect (client follows)
+                if status == 301:
+                    location = response.headers.get("Location", "unknown")
+                    logger.warning(
+                        "Repository URL returned 301 → %s, trying follow", location
+                    )
+                    # `allow_redirects=True` already followed it; if we
+                    # ended on 301 the chain ended oddly – treat as exists
+                    return True
+
+                # 302 Found – often used by GitLab to redirect to sign‑in
+                # for private repos.
+                if status == 302:
+                    logger.info(
+                        "Repository returned 302 (likely private or requires auth) [%s]", url
+                    )
+                    # We can't tell if it *exists* but is private, or
+                    # doesn't exist.  Defer to the caller – let the
+                    # actual `git clone` decide.
+                    return True
+
+                # 401 / 403 – authentication required or access denied
+                if status in (401, 403):
+                    logger.warning(
+                        "Repository access denied [%s] (HTTP %d) – may be private", url, status
+                    )
+                    return True  # Might exist but is protected
+
+                # 404 Not Found – the repo definitely does not exist
+                if status == 404:
+                    logger.warning(
+                        "Repository NOT FOUND [%s] (404, %.2fs)", url, elapsed
+                    )
+                    return False
+
+                # 429 Too Many Requests – rate‑limited
+                if status == 429:
+                    retry_after = response.headers.get("Retry-After", "?")
+                    logger.error(
+                        "Rate limited while probing [%s] (429, retry-after=%s)",
+                        url,
+                        retry_after,
+                    )
+                    raise RuntimeError(
+                        f"Rate limited by Git host (HTTP 429). "
+                        f"Retry after {retry_after}s."
+                    )
+
+                # 5xx – server error, not a reliable "does not exist"
+                if 500 <= status < 600:
+                    logger.error(
+                        "Git host server error [%s] (HTTP %d, %.2fs)",
+                        url,
+                        status,
+                        elapsed,
+                    )
+                    raise RuntimeError(
+                        f"Git host returned server error (HTTP {status}) "
+                        f"for {url}"
+                    )
+
+                # Any other unexpected status
+                logger.error(
+                    "Unexpected HTTP status %d probing [%s] (%.2fs)",
+                    status,
+                    url,
+                    elapsed,
+                )
+                raise RuntimeError(
+                    f"Unexpected HTTP status {status} when probing {url}"
+                )
+
     except asyncio.TimeoutError:
-        return False
+        elapsed = time.monotonic() - start_time
+        logger.error(
+            "Timeout probing repository [%s] (%.2fs, timeout=30s)",
+            url,
+            elapsed,
+        )
+        raise RuntimeError(f"Timeout while checking repository: {url}")
+
+    except aiohttp.ClientConnectorError as exc:
+        elapsed = time.monotonic() - start_time
+        logger.error(
+            "Connection failed probing [%s] (%.2fs): %s",
+            url,
+            elapsed,
+            exc,
+        )
+        raise RuntimeError(
+            f"Cannot connect to Git host when checking {url}: {exc}"
+        ) from exc
+
+    except aiohttp.ClientError as exc:
+        elapsed = time.monotonic() - start_time
+        logger.error(
+            "HTTP client error probing [%s] (%.2fs): %s",
+            url,
+            elapsed,
+            exc,
+        )
+        raise RuntimeError(
+            f"HTTP error while checking repository {url}: {exc}"
+        ) from exc
 
 
 async def ensure_git_installed() -> None:
@@ -61,9 +214,9 @@ async def ensure_git_installed() -> None:
         # Run in executor to avoid blocking the event loop
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, _check_git)
-        print('git exist in the environment.')
+        logger.info("Git is available in the environment.")
     except Exception as exc:
-        print(f"ERROR DETAILS: {exc}")
+        logger.error("Git check failed: %s", exc)
         msg = "Git is not installed or not accessible. Please install Git first."
         raise RuntimeError(msg) from exc
 
@@ -79,35 +232,55 @@ def _check_git() -> None:
 async def fetch_remote_branch_list(url: str) -> List[str]:
     """
     Fetch the list of branches from a remote Git repository using GitPython.
-    
+
     Parameters
     ----------
     url : str
         The URL of the Git repository to fetch branches from.
-        
+
     Returns
     -------
     List[str]
         A list of branch names available in the remote repository.
+
+    Raises
+    ------
+    RuntimeError
+        If Git is not installed or the remote cannot be queried.
     """
+    logger.info("Fetching remote branch list for %s", url)
     await ensure_git_installed()
-    
+
+    start_time = time.monotonic()
     loop = asyncio.get_event_loop()
     branches = await loop.run_in_executor(None, _fetch_branches, url)
+    elapsed = time.monotonic() - start_time
+
+    logger.info(
+        "Fetched %d branches from %s in %.2fs",
+        len(branches),
+        url,
+        elapsed,
+    )
+    logger.debug("Branches: %s", branches)
     return branches
 
 
 def _fetch_branches(url: str) -> List[str]:
     """Synchronous helper to fetch remote branch list using GitPython."""
     try:
-        # Use git ls-remote via GitPython to list remote heads
         g = git.Git()
         output = g.ls_remote("--heads", url)
+        logger.debug("Raw ls-remote output for %s: %d bytes", url, len(output))
         branches = []
         for line in output.splitlines():
             if line.strip() and "refs/heads/" in line:
                 branch_name = line.split("refs/heads/", 1)[1]
                 branches.append(branch_name)
+        logger.debug("Parsed %d branches from ls-remote output", len(branches))
         return branches
     except GitCommandError as exc:
-        raise RuntimeError(f"Failed to fetch branch list: {exc}") from exc
+        logger.error(
+            "Git ls-remote failed for %s: %s", url, exc
+        )
+        raise RuntimeError(f"Failed to fetch branch list for {url}: {exc}") from exc

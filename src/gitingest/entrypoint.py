@@ -19,7 +19,7 @@ async def ingest_async(
     '''
     Main entry point for ingesting a source and processing its contents.
 
-    This function annlyzes a source (URL or local path), clones the corresponding repository (if applicable),
+    This function analyzes a source (URL or local path), clones the corresponding repository (if applicable),
     and processes its files according to the specified query parameters. It returns a summary, a tree-like
     structure of the files, and the content of the files. The results can optionally be written to an output file.
 
@@ -76,7 +76,7 @@ async def ingest_async(
                 else:
                     asyncio.run(clone_coroutine)
             else:
-                raise TypeError("clone_repo did not return a cotoutine as expected.")
+                raise TypeError("clone_repo did not return a coroutine as expected.")
 
             repo_cloned = True
 

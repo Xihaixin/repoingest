@@ -7,8 +7,11 @@ from typing import Any
 from fastapi import status
 from fastapi.responses import JSONResponse
 
+from gitingest.utils.logger import get_logger
 from server.models import IngestErrorResponse, IngestSuccessResponse, PatternType
 from server.query_processor import process_query
+
+logger = get_logger("routers_utils")
 
 COMMON_INGEST_RESPONSES: dict[int | str, dict[str, Any]] = {
     status.HTTP_200_OK: {"model": IngestSuccessResponse, "description": "Successful ingestion"},
@@ -18,11 +21,11 @@ COMMON_INGEST_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 async def _perform_ingestion(
-        input_text: str,
-        max_file_size: int,
-        pattern_type: str,
-        pattern: str,
-        token: str | None,
+    input_text: str,
+    max_file_size: int,
+    pattern_type: str,
+    pattern: str,
+    token: str | None,
 ) -> JSONResponse:
     """Run ``process_query`` and wrap the result in a ``FastAPI`` ``JSONResponse``.
 
@@ -40,18 +43,18 @@ async def _perform_ingestion(
         )
 
         if isinstance(result, IngestErrorResponse):
-            # Return structured error response with 400 status code
+            logger.warning("Ingestion returned error for input='%s': %s", input_text, result.model_dump().get("error"))
             return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=result.model_dump())
-        
-        # Return structured success response with 200 status code
+
+        logger.info("Ingestion succeeded for input='%s'", input_text)
         return JSONResponse(status_code=status.HTTP_200_OK, content=result.model_dump())
 
     except ValueError as ve:
-        # Handle validation errors with 400 status code
+        logger.warning("Validation error for input='%s': %s", input_text, ve)
         error_response = IngestErrorResponse(error=f"Validation error: {ve!s}")
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=error_response.model_dump())
 
     except Exception as exc:
-        # Handle unexpected error with 500 status code
+        logger.error("Internal server error for input='%s': %s", input_text, exc)
         error_response = IngestErrorResponse(error=f"Internal server error: {exc!s}")
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=error_response.model_dump())

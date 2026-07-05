@@ -1,10 +1,12 @@
 """Functions to ingest and analyze a codebase directory or single file"""
 import tiktoken
-import logging
 from typing import Optional, Tuple
 
 from gitingest.query_parsing import IngestionQuery
 from gitingest.schemas import FileSystemNode, FileSystemNodeType
+from gitingest.utils.logger import get_logger
+
+logger = get_logger("output_formatters")
 
 def format_node(node:FileSystemNode, query: IngestionQuery) -> Tuple[str,str,str]:
     """
@@ -28,7 +30,7 @@ def format_node(node:FileSystemNode, query: IngestionQuery) -> Tuple[str,str,str
     summary = _create_summary_prefix(query, single_file=is_single_file)
 
     if node.type == FileSystemNodeType.DIRECTORY:
-        summary += f"Files analysized:{node.file_count}\n"
+        summary += f"Files analyzed:{node.file_count}\n"
     elif node.type == FileSystemNodeType.FILE:
         summary += f"File:{node.name}\n"
         summary += f"Lines:{len(node.content.splitlines()):,}\n"
@@ -139,10 +141,10 @@ def _gather_file_contents(node: FileSystemNode) -> str:
     str
         The concatenated content of all files under the given node.
     """
-    logging.info(f"We are handling the filenode {node.name}. it's type is {node.type}")
+    logger.debug("Handling file node: %s (type=%s)", node.name, node.type)
     if node.type != FileSystemNodeType.DIRECTORY:
         return node.content_string
-    logging.info(f"Let's check the directory's children node {[child.name for child in node.children]}")
+    logger.debug("Directory children: %s", [child.name for child in node.children])
     return "\n".join(_gather_file_contents(child) for child in node.children)
 
 def _format_token_count(text: str) -> Optional[str]:
@@ -165,7 +167,7 @@ def _format_token_count(text: str) -> Optional[str]:
         encoding = tiktoken.get_encoding("cl100k_base")
         total_tokens = len(encoding.encode(text, disallowed_special=()))
     except (ValueError, UnicodeEncodeError) as exc:
-        print(exc)
+        logger.error("Token estimation failed: %s", exc)
         return None
     
     if total_tokens >= 1_000_000:

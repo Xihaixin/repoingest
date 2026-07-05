@@ -9,7 +9,10 @@ from git import Repo, GitCommandError
 
 from gitingest.schemas import CloneConfig
 from gitingest.utils.git_utils import check_repo_exists, ensure_git_installed, CloneProgress
+from gitingest.utils.logger import get_logger
 from gitingest.utils.timeout_wrapper import async_timeout
+
+logger = get_logger("cloning")
 
 TIMEOUT: int = 300  # 5 minutes timeout for larger repos
 
@@ -51,15 +54,31 @@ async def clone_repo(config: CloneConfig) -> None:
     try:
         os.makedirs(parent_dir, exist_ok=True)
     except OSError as exc:
-        raise OSError(f"Falid to create parent directory {parent_dir}: {exc}") from exc
+        logger.error("Failed to create parent directory %s: %s", parent_dir, exc)
+        raise OSError(f"Failed to create parent directory {parent_dir}: {exc}") from exc
 
     # Check if the repository exists
-    if not await check_repo_exists(url):
-        raise ValueError("Repository not found, make sure it is public")
-    
+    try:
+        repo_exists = await check_repo_exists(url)
+        if not repo_exists:
+            logger.error("Repository not found: %s", url)
+            raise ValueError(
+                f"Repository '{url}' not found. Make sure the URL is correct and the repository is public."
+            )
+    except RuntimeError as exc:
+        logger.error(
+            "Repository existence check failed for %s (will attempt clone anyway): %s",
+            url,
+            exc,
+        )
+        # ── Network-level failures should not block the clone attempt ──
+        # The actual `git clone` may succeed where the HTTP probe failed
+        # (e.g. different network path, authentication, etc.)
+
     await ensure_git_installed()
-    
+
     # Use GitPython to clone the repository in a thread executor
+    logger.info("Starting clone for %s", url)
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, _clone_repo_sync, config)
 
@@ -83,7 +102,7 @@ def _clone_repo_sync(config: CloneConfig) -> None:
 
     # Cache reuse: if directory already exists, skip cloning
     if os.path.exists(local_path):
-        print(f"Repository cache found at {local_path}, skipping clone")
+        logger.info("Repository cache found at %s, skipping clone", local_path)
         return
 
     try:
@@ -107,15 +126,20 @@ def _clone_repo_sync(config: CloneConfig) -> None:
             sparse_path = subpath.lstrip("/")
             if config.blob:
                 sparse_path = str(Path(sparse_path).parent.as_posix())
-            
+
             repo.git.sparse_checkout("set", sparse_path)
+            logger.info("Sparse checkout configured for subpath: %s", sparse_path)
         else:
             repo = Repo.clone_from(url, local_path, **clone_kwargs)
 
         if commit:
             repo.git.checkout(commit)
+            logger.info("Checked out commit: %s", commit)
+
+        logger.info("Repository cloned successfully to %s", local_path)
 
     except GitCommandError as exc:
+        logger.error("Git operation failed for %s: %s", url, exc)
         raise RuntimeError(f"Git operation failed: {exc}") from exc
 
 
@@ -135,4 +159,5 @@ def validate_github_token(token: str) -> None:
 
     """
     if not re.fullmatch(_GITHUB_PAT_PATTERN, token):
-        print("Please give the right token that can be access to the Github")
+        logger.warning("Invalid GitHub token format provided")
+        raise ValueError("Invalid GitHub token format")
