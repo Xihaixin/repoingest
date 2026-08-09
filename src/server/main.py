@@ -16,13 +16,27 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 # ── Logging MUST be configured before any other import that uses it ──
 from gitingest.utils.logger import setup_logging, get_logger
 
+# The code directory (contains .env, server/, gitingest/) is the reference
+# point for resolving relative log paths, so the location does NOT depend on
+# the process working directory.
+_PKG_DIR = Path(__file__).resolve().parent.parent
+
 # Determine a sensible default log file path
-_log_dir = Path(__file__).parent.parent / "logs"
+_log_dir = _PKG_DIR / "logs"
 _log_dir.mkdir(parents=True, exist_ok=True)
 _default_log_file = str(_log_dir / "repoingest.log")
 
-# Environment variable takes precedence, then fallback to default path
-_log_file = os.getenv("REPOINGEST_LOG_FILE") or _default_log_file
+# Environment variable takes precedence, then fallback to default path.
+# A relative REPOINGEST_LOG_FILE is resolved against the code directory.
+_env_log_file = os.getenv("REPOINGEST_LOG_FILE")
+if _env_log_file:
+    _log_file = (
+        _env_log_file
+        if os.path.isabs(_env_log_file)
+        else str((_PKG_DIR / _env_log_file).resolve())
+    )
+else:
+    _log_file = _default_log_file
 
 setup_logging(log_file=_log_file)
 logger = get_logger("server")
@@ -30,7 +44,7 @@ logger = get_logger("server")
 logger.info("Logging to file: {}", _log_file)
 
 # Load environment variables from .env file
-load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
+load_dotenv(dotenv_path=_PKG_DIR / ".env")
 
 from server.routers import download, dynamic, index, ingest
 from server.middleware import RequestLoggingMiddleware

@@ -9,6 +9,7 @@ across all log lines, and the identifier is echoed back to the client in the
 
 from __future__ import annotations
 
+import os
 import time
 import uuid
 
@@ -18,6 +19,18 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from gitingest.utils.logger import get_logger
 
 logger = get_logger("server.middleware")
+
+# Requests slower than this (milliseconds) are reported with a WARNING line.
+_DEFAULT_SLOW_REQUEST_MS = 30_000
+
+
+def _slow_request_ms() -> float:
+    """Return the slow-request threshold in ms (env-configurable)."""
+    raw = os.getenv("REPOINGEST_SLOW_REQUEST_MS", "")
+    try:
+        return float(raw) if raw else _DEFAULT_SLOW_REQUEST_MS
+    except ValueError:
+        return _DEFAULT_SLOW_REQUEST_MS
 
 
 def _client_ip(request: Request) -> str:
@@ -57,6 +70,13 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 raise
 
             duration_ms = (time.perf_counter() - start) * 1000
+            if duration_ms >= _slow_request_ms():
+                logger.warning(
+                    "Slow request completed | status={} | duration={:.1f}ms | threshold={:.0f}ms",
+                    response.status_code,
+                    duration_ms,
+                    _slow_request_ms(),
+                )
             logger.info(
                 "Request completed | status={} | duration={:.1f}ms",
                 response.status_code,

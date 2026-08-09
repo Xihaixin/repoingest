@@ -112,12 +112,14 @@ summary, tree, content = await ingest_async("path/to/directory")
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `REPOINGEST_LOG_LEVEL` | `INFO` | 全局日志级别 |
-| `REPOINGEST_LOG_FILE` | `src/logs/repoingest.log` | 日志文件路径 |
+| `REPOINGEST_LOG_FILE` | `src/logs/repoingest.log` | 日志文件路径（相对代码 `src/` 目录解析，与进程工作目录无关） |
 | `REPOINGEST_LOG_ROTATION` | `00:00` | 轮转规则（时间/大小） |
 | `REPOINGEST_LOG_RETENTION` | `14 days` | 日志保留时长 |
 | `REPOINGEST_LOG_COMPRESSION` | `gz` | 轮转文件压缩格式 |
 | `REPOINGEST_LOG_JSON` | `0` | 设为 `1` 输出 JSON 行 |
 | `REPOINGEST_LOG_TO_STDOUT` | `1` | 设为 `0` 关闭控制台输出 |
+| `REPOINGEST_PROBE_TIMEOUT` | `10` | 仓库存在性探测超时（秒） |
+| `REPOINGEST_SLOW_REQUEST_MS` | `30000` | 慢请求告警阈值（毫秒） |
 
 ## 🤝 贡献方式
 

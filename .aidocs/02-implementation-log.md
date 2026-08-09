@@ -243,3 +243,84 @@ All modules imported OK
 2. **可选增强**：接入日志聚合平台（ELK/Loki）时设置 `REPOINGEST_LOG_JSON=1`，并可按 `request_id` 做全文索引。
 3. **可选增强**：`_perform_ingestion` 的 `ValueError` 分支可保留 `logger.warning`（预期内校验失败，无需堆栈）。
 4. **安全提醒**：`diagnose=False` 已避免 traceback 泄露局部变量；请勿在生产开启 `diagnose`。
+
+---
+
+# Phase 3 · 运行期分析优化（2026-08-09）
+
+> 分析文档：`03-log-analysis-and-proposal.md`
+
+## 问题清单（对应阶段 A–E）
+
+| # | 问题 | 修复 |
+|---|------|------|
+| L1 | 日志路径 cwd 相关，写入 `src/src/logs/` | Stage A |
+| L2 | `run_in_executor` 线程内日志丢失 `rid` | Stage B |
+| L3 | 60s 探测超时拖垮请求（66s） | Stage D |
+| L4 | 兜底日志误用 ERROR | Stage C |
+| L5 | `Git is available` 每请求 INFO | Stage C |
+| L6 | `size=0kb` 单位错误 | Stage C |
+| L7 | 内容裁剪/慢请求无日志 | Stage E |
+
+## Stage A · 日志路径 cwd 无关化
+
+**文件**：`src/server/main.py`、`.env`、`README.md`
+
+- 新增 `_PKG_DIR = Path(__file__).resolve().parent.parent`（代码 `src/` 目录）作为相对基准。
+- `REPOINGEST_LOG_FILE` 相对值 → 相对 `_PKG_DIR` 解析为绝对路径；绝对路径原样使用；未设则用 `_PKG_DIR/logs/repoingest.log`（绝对，cwd 无关）。
+- `.env` 移除相对值 `REPOINGEST_LOG_FILE=src/logs/repoingest.log`（保留注释说明 + 新增 `REPOINGEST_PROBE_TIMEOUT`、`REPOINGEST_SLOW_REQUEST_MS`）。
+
+**验证**：从 `src/` cwd 启动 `import server.main`，日志写入 `src/logs/`（不再是 `src/src/logs/`）。
+
+## Stage B · 请求上下文跨线程传播
+
+**文件**：`src/gitingest/cloning.py`
+
+```python
+ctx = contextvars.copy_context()
+await loop.run_in_executor(None, lambda: ctx.run(_clone_repo_sync, config))
+```
+
+`_clone_repo_sync` 内日志（缓存命中、sparse、commit、cloned）恢复携带 `rid`。
+
+**验证**：直接测试证明 `contextvars.copy_context().run()` 后线程内日志含 `rid`。
+
+## Stage C · 级别与内容修订
+
+**文件**：`cloning.py`、`git_utils.py`、`query_processor.py`
+
+- `Repository existence check failed ... (will attempt clone anyway)`：ERROR → **WARNING**（已兜底恢复）。
+- `Timeout probing repository`：ERROR → **WARNING**；超时值改读实际配置。
+- `Git is available in the environment.`：INFO → **DEBUG**。
+- `_build_query_details`：`max_file_size` 实为 KB，直接显示 `size={max_file_size}kb`，默认 50 省略（修复 `size=0kb`）。
+
+## Stage D · 探测超时可配置
+
+**文件**：`git_utils.py`、`.env`、`README.md`
+
+- 新增 `_probe_timeout()`，读取 `REPOINGEST_PROBE_TIMEOUT`（默认 **10s**，原硬编码 60s）。
+- 超时日志输出实际超时值：`(2.02s, timeout=2.0s)`。
+
+**验证**：`REPOINGEST_PROBE_TIMEOUT=2` 时探测 2.02s 后 WARNING 并抛出 `RuntimeError`，`cloning` 捕获后 WARNING 兜底。
+
+## Stage E · 新增日志点
+
+**文件**：`src/server/middleware.py`、`query_processor.py`
+
+- 中间件慢请求告警：`duration >= REPOINGEST_SLOW_REQUEST_MS`（默认 30000ms）→ WARNING `Slow request completed | status={} | duration={:.1f}ms | threshold={:.0f}ms`。
+- 内容裁剪告警：content > `MAX_DISPLAY_SIZE` → WARNING `Content cropped for {}: {} -> {} characters`。
+
+## Stage F · 验证结果
+
+1. `_build_query_details` 单元验证：`243 → size=243kb`；`50 → 省略` ✅
+2. 日志路径 cwd 无关（从 `src/` 启动仍写 `src/logs/`）✅
+3. 慢请求 WARNING 触发（阈值 1ms）✅
+4. 失败请求全链路含 `rid`（probe → clone fail → Query failed → 500）✅
+5. 探测超时：2s 配置生效，WARNING + 实际超时值 ✅
+6. `black --check`：`middleware.py`、`logger.py`（新增/重写文件）通过 ✅
+
+## 遗留事项 / 建议（Phase 3）
+
+1. **可进一步优化**：可评估完全移除仓库存在性预检（clone 本身对不存在仓库 2-3s 内即报 exit 128），或将探测与 clone 并发执行。
+2. **部署提醒**：部署环境若设置 `REPOINGEST_LOG_FILE`，请使用绝对路径或相对代码 `src/` 目录的路径（不再依赖 cwd）。
+3. **清理**：`src/src/` 目录为修复前的遗留（cwd 错误产生），确认后可手动删除。

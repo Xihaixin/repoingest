@@ -15,10 +15,14 @@ logger = get_logger("query_processor")
 def _build_query_details(
     url: str, max_file_size: int, pattern_type: str, pattern: str
 ) -> str:
-    """Build a human-readable string describing a query's parameters."""
+    """Build a human-readable string describing a query's parameters.
+
+    ``max_file_size`` is the file size slider position expressed in KB, so it
+    is reported directly as ``<n>kb`` and the default (50) is omitted.
+    """
     parts = [f"url={url}"]
-    if int(max_file_size / 1024) != 50:
-        parts.append(f"size={int(max_file_size / 1024)}kb")
+    if max_file_size != 50:
+        parts.append(f"size={max_file_size}kb")
     if pattern and pattern_type == "include":
         parts.append(f"include={pattern}")
     elif pattern and pattern_type == "exclude":
@@ -105,6 +109,12 @@ async def process_query(
         raise
 
     if len(content) > MAX_DISPLAY_SIZE:
+        logger.warning(
+            "Content cropped for {}: {} -> {} characters (full digest available via download)",
+            query.url or input_text,
+            len(content),
+            MAX_DISPLAY_SIZE,
+        )
         content = (
             f"(Files content cropped to {int(MAX_DISPLAY_SIZE / 1_000)}k characters,"
             "download full ingest to see more)\n" + content[:MAX_DISPLAY_SIZE]

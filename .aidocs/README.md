@@ -7,7 +7,8 @@
 | 文件 | 内容 |
 |------|------|
 | [`01-logging-system-design.md`](./01-logging-system-design.md) | 设计方案：问题分析、技术选型（Loguru）、目标架构、日志格式、请求溯源设计、轮转策略、验收标准 |
-| [`02-implementation-log.md`](./02-implementation-log.md) | 实施日志：7 个阶段逐项记录（依赖 → logger.py → 中间件 → 桥接 → 格式化迁移 → 配置 → 验证） |
+| [`02-implementation-log.md`](./02-implementation-log.md) | 实施日志：Phase 2（7 阶段）+ Phase 3（运行期分析优化 A–E 阶段） |
+| [`03-log-analysis-and-proposal.md`](./03-log-analysis-and-proposal.md) | 运行期日志分析（7 个问题）+ 日志记录点/记录信息提案 |
 
 ## 变更文件清单
 
@@ -20,9 +21,11 @@
 | `src/server/query_processor.py` | 修改 | `%`→`{}`；失败日志升级为 `logger.exception` |
 | `src/server/routers_utils.py` | 修改 | 同上 |
 | `src/server/server_utils.py` | 修改 | 同上 |
-| `src/gitingest/cloning.py` | 修改 | `%`→`{}` |
+| `src/gitingest/cloning.py` | 修改 | `%`→`{}`；**Phase 3**：上下文跨线程传播、兜底级别 WARNING |
 | `src/gitingest/ingestion.py` | 修改 | `%`→`{}` |
 | `src/gitingest/output_formatters.py` | 修改 | `%`→`{}` |
-| `src/gitingest/utils/git_utils.py` | 修改 | `%`→`{}`；失败日志升级为 `logger.exception` |
-| `.env` | 修改 | 新增日志配置项 |
-| `README.md` | 修改 | 新增「📝 日志系统」章节 |
+| `src/gitingest/utils/git_utils.py` | 修改 | `%`→`{}`；**Phase 3**：探测超时可配置（默认 10s）、级别下调 |
+| `.env` | 修改 | 新增日志配置项；**Phase 3**：移除相对日志路径、新增探测/慢请求阈值 |
+| `README.md` | 修改 | 新增「📝 日志系统」章节；**Phase 3**：补充新配置项 |
+
+**Phase 3 说明**：`src/server/middleware.py`（慢请求告警）、`src/server/query_processor.py`（`size` 单位修复、裁剪告警）、`src/server/main.py`（日志路径 cwd 无关化）。

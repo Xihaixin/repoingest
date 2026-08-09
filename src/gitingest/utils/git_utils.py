@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 import aiohttp
 from typing import List
@@ -16,6 +17,20 @@ _GIT_HTTP_HEADERS: dict[str, str] = {
     "Accept": "*/*",
     "Accept-Encoding": "gzip, deflate",
 }
+
+# Timeout (seconds) for the repository existence probe.  A short timeout keeps
+# the pre-flight check from stalling the request: when it expires the caller
+# simply falls back to cloning, which reports the real outcome quickly.
+_DEFAULT_PROBE_TIMEOUT = 10
+
+
+def _probe_timeout() -> float:
+    """Return the repository probe timeout in seconds (env-configurable)."""
+    raw = os.getenv("REPOINGEST_PROBE_TIMEOUT", "")
+    try:
+        return float(raw) if raw else _DEFAULT_PROBE_TIMEOUT
+    except ValueError:
+        return _DEFAULT_PROBE_TIMEOUT
 
 
 class CloneProgress(RemoteProgress):
@@ -65,9 +80,10 @@ async def check_repo_exists(url: str) -> bool:
         probe_url,
     )
 
-    # Use a generous timeout (60s) because connections to GitHub/GitLab
-    # from some regions (e.g. China) can be very slow.
-    timeout = aiohttp.ClientTimeout(total=60)
+    # Short, configurable timeout: when it expires the caller falls back to
+    # cloning anyway, so a long probe only adds pointless latency.
+    probe_timeout = _probe_timeout()
+    timeout = aiohttp.ClientTimeout(total=probe_timeout)
     start_time = time.monotonic()
 
     try:
@@ -170,10 +186,11 @@ async def check_repo_exists(url: str) -> bool:
 
     except asyncio.TimeoutError:
         elapsed = time.monotonic() - start_time
-        logger.error(
-            "Timeout probing repository [{}] ({:.2f}s, timeout=60s)",
+        logger.warning(
+            "Timeout probing repository [{}] ({:.2f}s, timeout={}s)",
             url,
             elapsed,
+            probe_timeout,
         )
         raise RuntimeError(
             f"Timeout while checking repository (network may be slow): {url}"
@@ -218,7 +235,7 @@ async def ensure_git_installed() -> None:
         # Run in executor to avoid blocking the event loop
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, _check_git)
-        logger.info("Git is available in the environment.")
+        logger.debug("Git is available in the environment.")
     except Exception as exc:
         logger.exception("Git check failed: {}", exc)
         msg = "Git is not installed or not accessible. Please install Git first."

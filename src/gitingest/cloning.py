@@ -1,5 +1,6 @@
 """This module contains functions for cloning a Git repository to a local path."""
 import asyncio
+import contextvars
 import os
 import re
 import time
@@ -67,7 +68,7 @@ async def clone_repo(config: CloneConfig) -> None:
                 f"Repository '{url}' not found. Make sure the URL is correct and the repository is public."
             )
     except RuntimeError as exc:
-        logger.error(
+        logger.warning(
             "Repository existence check failed for {} (will attempt clone anyway): {}",
             url,
             exc,
@@ -89,7 +90,11 @@ async def clone_repo(config: CloneConfig) -> None:
     )
     clone_start = time.monotonic()
     loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, _clone_repo_sync, config)
+    # Propagate the current context (incl. Loguru's request_id bound via
+    # contextualize) into the executor thread so logs emitted inside
+    # _clone_repo_sync keep the request trace id.
+    ctx = contextvars.copy_context()
+    await loop.run_in_executor(None, lambda: ctx.run(_clone_repo_sync, config))
     clone_elapsed = time.monotonic() - clone_start
     logger.info("Clone completed in {:.2f}s for {}", clone_elapsed, url)
 
