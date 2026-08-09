@@ -27,12 +27,13 @@ _log_file = os.getenv("REPOINGEST_LOG_FILE") or _default_log_file
 setup_logging(log_file=_log_file)
 logger = get_logger("server")
 
-logger.info("Logging to file: %s", _log_file)
+logger.info("Logging to file: {}", _log_file)
 
 # Load environment variables from .env file
 load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 from server.routers import download, dynamic, index, ingest
+from server.middleware import RequestLoggingMiddleware
 from server.server_config import templates
 from server.server_utils import lifespan, limiter, rate_limit_exception_handler
 
@@ -63,10 +64,14 @@ else:
     default_allowed_hosts = ["repoingest.top", "*.repoingest.top", "localhost", "127.0.0.1"]
     allowed_hosts = default_allowed_hosts
 
-logger.debug("Allowed hosts: %s", allowed_hosts)
+logger.debug("Allowed hosts: {}", allowed_hosts)
 
 # Add middleware to enforce allowed hosts
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+
+# Request tracing: outermost middleware so every request (even rejected ones)
+# is assigned a request_id and its lifecycle is logged
+app.add_middleware(RequestLoggingMiddleware)
 
 
 @app.get("/health")
@@ -147,7 +152,7 @@ app.include_router(dynamic)
 if __name__ == "__main__":
     port = int(os.getenv("REPOINGEST_PORT", 8000))
     host = os.getenv("REPOINGEST_HOST", "127.0.0.1")
-    logger.info("Starting FastAPI server at http://%s:%s", host, port)
+    logger.info("Starting FastAPI server at http://{}:{}", host, port)
 
     config = uvicorn.Config(
         app=app,
@@ -155,6 +160,8 @@ if __name__ == "__main__":
         port=port,
         reload=False,
         loop="asyncio",
+        access_log=False,
+        log_config=None,
     )
 
     server = uvicorn.Server(config=config)
