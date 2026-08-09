@@ -204,7 +204,7 @@ def _process_node(
             node.dir_count += 1 + child_directory_node.dir_count
 
         else:
-            logger.warning("Unknown file type encountered: %s, skipping", sub_path)
+            logger.warning("Unknown file type encountered: {}, skipping", sub_path)
 
     node.sort_children()
 
@@ -256,13 +256,13 @@ def _process_file(path: Path, parent_node: FileSystemNode,stats: FileSystemStats
     """
     file_size = path.stat().st_size
     if stats.total_size + file_size > MAX_TOTAL_SIZE_BYTES:
-        logger.warning("Skipping file %s: would exceed total size limit (%.1f MB)", path, MAX_TOTAL_SIZE_BYTES / 1024 / 1024)
+        logger.warning("Skipping file {}: would exceed total size limit ({:.1f} MB)", path, MAX_TOTAL_SIZE_BYTES / 1024 / 1024)
         return
     stats.total_files += 1
     stats.total_size += file_size
 
     if stats.total_files > MAX_FILES:
-        logger.warning("Maximum file limit (%d) reached", MAX_FILES)
+        logger.warning("Maximum file limit ({}) reached", MAX_FILES)
         return
     
     child = FileSystemNode(
@@ -300,13 +300,13 @@ def limit_exceeded(stats: FileSystemStats, depth: int) -> bool:
     """
 
     if depth > MAX_DIRECTORY_DEPTH:
-        logger.warning("Maximum depth limit (%d) reached", MAX_DIRECTORY_DEPTH)
+        logger.warning("Maximum depth limit ({}) reached", MAX_DIRECTORY_DEPTH)
         return True
     if stats.total_files >= MAX_FILES:
-        logger.warning("Maximum file limit (%d) reached", MAX_FILES)
+        logger.warning("Maximum file limit ({}) reached", MAX_FILES)
         return True
     if stats.total_size >= MAX_TOTAL_SIZE_BYTES:
-        logger.warning("Maximum total size limit (%.1f MB) reached", MAX_TOTAL_SIZE_BYTES / 1024 / 1024)
+        logger.warning("Maximum total size limit ({:.1f} MB) reached", MAX_TOTAL_SIZE_BYTES / 1024 / 1024)
         return True
     
     return False

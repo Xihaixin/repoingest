@@ -48,7 +48,7 @@ async def rate_limit_exception_handler(request: Request, exc: Exception) -> Resp
         If the exception is not a RateLimitExceeded error, it is re-raised.
     """
     if isinstance(exc, RateLimitExceeded):
-        logger.warning("Rate limit exceeded for %s", request.client.host if request.client else "unknown")
+        logger.warning("Rate limit exceeded for {}", request.client.host if request.client else "unknown")
         return _rate_limit_exceeded_handler(request, exc)
     raise exc
 
@@ -105,7 +105,7 @@ async def _remove_old_repositories():
             for folder in TMP_BASE_PATH.iterdir():
                 if not any(folder.iterdir()):
                     folder.rmdir()
-                    logger.debug("Removed empty folder: %s", folder)
+                    logger.debug("Removed empty folder: {}", folder)
                     continue
                 folder_stat = folder.stat()
                 if platform.system() == "Windows":
@@ -122,7 +122,7 @@ async def _remove_old_repositories():
                 await _process_folder(folder)
 
         except Exception as exc:
-            logger.error("Error in _remove_old_repositories: %s", exc)
+            logger.exception("Error in _remove_old_repositories: {}", exc)
 
         await asyncio.sleep(60)
 
@@ -152,17 +152,17 @@ async def _process_folder(folder: Path) -> None:
                     )[:-3]
                     f.write(f"[UTC]{current_utc_time} | {repo_url}\n")
 
-                logger.info("Logged repository %s to history.txt before deletion", repo_url)
+                logger.info("Logged repository {} to history.txt before deletion", repo_url)
 
     except Exception as exc:
-        logger.error("Error logging repository URL for %s: %s", folder, exc)
+        logger.exception("Error logging repository URL for {}: {}", folder, exc)
 
     # Delete the folder
     try:
         shutil.rmtree(folder)
-        logger.info("Deleted old repository folder: %s", folder)
+        logger.info("Deleted old repository folder: {}", folder)
     except Exception as exc:
-        logger.error("Error deleting %s: %s", folder, exc)
+        logger.exception("Error deleting {}: {}", folder, exc)
 
 
 def log_slider_to_size(position: int) -> int:

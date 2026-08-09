@@ -55,20 +55,20 @@ async def clone_repo(config: CloneConfig) -> None:
     try:
         os.makedirs(parent_dir, exist_ok=True)
     except OSError as exc:
-        logger.error("Failed to create parent directory %s: %s", parent_dir, exc)
+        logger.error("Failed to create parent directory {}: {}", parent_dir, exc)
         raise OSError(f"Failed to create parent directory {parent_dir}: {exc}") from exc
 
     # Check if the repository exists
     try:
         repo_exists = await check_repo_exists(url)
         if not repo_exists:
-            logger.error("Repository not found: %s", url)
+            logger.error("Repository not found: {}", url)
             raise ValueError(
                 f"Repository '{url}' not found. Make sure the URL is correct and the repository is public."
             )
     except RuntimeError as exc:
         logger.error(
-            "Repository existence check failed for %s (will attempt clone anyway): %s",
+            "Repository existence check failed for {} (will attempt clone anyway): {}",
             url,
             exc,
         )
@@ -80,7 +80,7 @@ async def clone_repo(config: CloneConfig) -> None:
 
     # Use GitPython to clone the repository in a thread executor
     logger.info(
-        "Starting clone for %s [branch=%s, commit=%s, partial=%s, depth=%s]",
+        "Starting clone for {} [branch={}, commit={}, partial={}, depth={}]",
         url,
         branch or "default",
         commit or "HEAD",
@@ -91,7 +91,7 @@ async def clone_repo(config: CloneConfig) -> None:
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, _clone_repo_sync, config)
     clone_elapsed = time.monotonic() - clone_start
-    logger.info("Clone completed in %.2fs for %s", clone_elapsed, url)
+    logger.info("Clone completed in {:.2f}s for {}", clone_elapsed, url)
 
 
 def _clone_repo_sync(config: CloneConfig) -> None:
@@ -113,7 +113,7 @@ def _clone_repo_sync(config: CloneConfig) -> None:
 
     # Cache reuse: if directory already exists, skip cloning
     if os.path.exists(local_path):
-        logger.info("Repository cache found at %s, skipping clone", local_path)
+        logger.info("Repository cache found at {}, skipping clone", local_path)
         return
 
     try:
@@ -139,15 +139,15 @@ def _clone_repo_sync(config: CloneConfig) -> None:
                 sparse_path = str(Path(sparse_path).parent.as_posix())
 
             repo.git.sparse_checkout("set", sparse_path)
-            logger.info("Sparse checkout configured for subpath: %s", sparse_path)
+            logger.info("Sparse checkout configured for subpath: {}", sparse_path)
         else:
             repo = Repo.clone_from(url, local_path, **clone_kwargs)
 
         if commit:
             repo.git.checkout(commit)
-            logger.info("Checked out commit: %s", commit)
+            logger.info("Checked out commit: {}", commit)
 
-        logger.info("Repository cloned successfully to %s", local_path)
+        logger.info("Repository cloned successfully to {}", local_path)
 
     except GitCommandError as exc:
         # GitCommandError carries stderr – this is the actual error from Git
@@ -156,9 +156,9 @@ def _clone_repo_sync(config: CloneConfig) -> None:
         git_cmd = " ".join(getattr(exc, "command", ["git", "?"]))
 
         logger.error(
-            "Git operation FAILED for %s (exit code %s)\n"
-            "  command: %s\n"
-            "  stderr: %s",
+            "Git operation FAILED for {} (exit code {})\n"
+            "  command: {}\n"
+            "  stderr: {}",
             url,
             git_status,
             git_cmd,

@@ -1,7 +1,13 @@
 """Centralized logging configuration for the application.
 
-This module provides a unified logging setup with colorized console output,
-optional file logging, and environment-based configuration.
+This module provides a unified logging setup built on top of Loguru.  It
+replaces the previous stdlib ``logging`` based configuration and adds:
+
+* Full timestamps (``YYYY-MM-DD HH:mm:ss.SSS``) on every line, console included.
+* Daily rotating file logs with retention and compression.
+* Context binding helpers (``request_id``, ``client_ip``, ...) for request tracing.
+* A bridge that routes standard library ``logging`` records (uvicorn,
+  aiohttp, gitpython, ...) through the same Loguru pipeline.
 
 Usage
 -----
@@ -9,72 +15,115 @@ Usage
 
     logger = get_logger("ingestion")
     logger.info("Processing started")
-    logger.warning("File size limit reached")
-    logger.error("Failed to process file")
+    logger.warning("File size limit reached: {}", path)
+    logger.error("Failed to process file: {}", exc)
 """
+
+from __future__ import annotations
 
 import logging
 import os
 import sys
 from typing import Optional
 
+from loguru import logger as _base_logger
 
-class _LogColors:
-    """ANSI color codes for terminal output."""
+# ── Environment defaults ──
+_DEFAULT_LOG_LEVEL = "INFO"
+_DEFAULT_ROTATION = "00:00"
+_DEFAULT_RETENTION = "14 days"
+_DEFAULT_COMPRESSION = "gz"
 
-    BLACK = "\033[0;30m"
-    RED = "\033[0;31m"
-    GREEN = "\033[0;32m"
-    BROWN = "\033[0;33m"
-    BLUE = "\033[0;34m"
-    PURPLE = "\033[0;35m"
-    CYAN = "\033[0;36m"
-    LIGHT_GRAY = "\033[0;37m"
-    DARK_GRAY = "\033[1;30m"
-    LIGHT_RED = "\033[1;31m"
-    LIGHT_GREEN = "\033[1;32m"
-    YELLOW = "\033[1;33m"
-    LIGHT_BLUE = "\033[1;34m"
-    LIGHT_PURPLE = "\033[1;35m"
-    LIGHT_CYAN = "\033[1;36m"
-    WHITE = "\033[1;37m"
-    BOLD = "\033[1m"
-    FAINT = "\033[2m"
-    ITALIC = "\033[3m"
-    UNDERLINE = "\033[4m"
-    BLINK = "\033[5m"
-    NEGATIVE = "\033[7m"
-    CROSSED = "\033[9m"
-    END = "\033[0m"
+# Optional extra fields rendered in the human-readable output when present
+# (bound via ``logger.contextualize(...)`` by the request middleware).
+_CONTEXT_LABELS = (
+    ("request_id", "rid"),
+    ("client_ip", "ip"),
+    ("method", "method"),
+    ("path", "path"),
+)
 
 
-_LEVEL_COLORS = {
-    "DEBUG": _LogColors.FAINT,
-    "INFO": _LogColors.GREEN,
-    "WARNING": _LogColors.YELLOW,
-    "ERROR": _LogColors.RED,
-    "CRITICAL": _LogColors.LIGHT_RED + _LogColors.BOLD,
-}
+def _make_formatter(colorize: bool):
+    """Build a Loguru formatter callable for the human-readable text output.
 
-
-class _ColoredFormatter(logging.Formatter):
-    """Custom formatter that adds ANSI color codes to log level names.
-
-    .. important::
-
-       This formatter **restores** ``record.levelname`` after formatting so that
-       other handlers attached to the same logger (e.g. a file handler) do **not**
-       see ANSI-escaped level names in their output.
+    The timestamp always includes the full date (``YYYY-MM-DD HH:mm:ss.SSS``).
+    Request context fields are only rendered when bound (e.g. inside a request
+    handled by the request logging middleware), keeping background/CLI logs
+    clean.
     """
 
-    def format(self, record: logging.LogRecord) -> str:
-        original_levelname = record.levelname
-        color = _LEVEL_COLORS.get(original_levelname, "")
-        record.levelname = f"{color}{original_levelname}{_LogColors.END}"
+    def _format(record: dict) -> str:
+        time_s = record["time"].strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        level_s = f"{record['level'].name: <8}"
+        module_s = record["extra"].get("module", record["name"])
+
+        if colorize:
+            parts = [f"<green>{time_s}</green> | <level>{level_s}</level> | {module_s}"]
+        else:
+            parts = [f"{time_s} | {level_s} | {module_s}"]
+
+        for key, label in _CONTEXT_LABELS:
+            value = record["extra"].get(key)
+            if value:
+                parts.append(f"{label}={value}")
+
+        if colorize:
+            parts.append("<level>{message}</level>")
+        else:
+            parts.append("{message}")
+
+        # Loguru renders the traceback only when `{exception}` is present.
+        if record["exception"] is not None:
+            parts.append("{exception}")
+
+        return " | ".join(parts) + "\n"
+
+    return _format
+
+
+def _env(name: str, default: str) -> str:
+    """Read an environment variable, returning ``default`` when unset/empty."""
+    value = os.getenv(name)
+    return value if value else default
+
+
+class _InterceptHandler(logging.Handler):
+    """Route stdlib ``logging`` records into the Loguru pipeline.
+
+    Attach this handler to the root stdlib logger so that third party
+    libraries (uvicorn, aiohttp, gitpython, ...) share the same console/file
+    sinks, format and rotation as the application logs.
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:
         try:
-            return super().format(record)
-        finally:
-            record.levelname = original_levelname
+            level = _base_logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        frame, depth = logging.currentframe(), 2
+        while frame is not None and frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        _base_logger.opt(depth=depth, exception=record.exc_info).log(
+            level,
+            record.getMessage(),
+            module=f"stdlib.{record.name}",
+        )
+
+
+def _setup_stdlib_bridge() -> None:
+    """Redirect the stdlib ``logging`` root logger into Loguru.
+
+    The uvicorn access logger is disabled because the request logging
+    middleware already records every request with richer context (request id,
+    client ip, duration).
+    """
+    handler = _InterceptHandler()
+    logging.basicConfig(handlers=[handler], level=0, force=True)
+    logging.getLogger("uvicorn.access").disabled = True
 
 
 # ── Module-level sentinel to ensure setup runs only once ──
@@ -85,76 +134,72 @@ def setup_logging(
     name: str = "repoingest",
     log_level: Optional[str] = None,
     log_file: Optional[str] = None,
-) -> logging.Logger:
-    """Set up and return a configured root logger instance.
+) -> None:
+    """Configure the Loguru logger: colorized console + rotating file sinks.
 
-    Call this **once** at application startup.  Subsequent calls return the
-    already-configured logger without adding duplicate handlers.
+    Call this **once** at application startup.  Subsequent calls are no-ops
+    (the existing sinks are kept) and never duplicate handlers.
 
     Parameters
     ----------
     name : str
-        Root logger name, defaults to ``"repoingest"``.
+        Root logger namespace.  Kept for API compatibility; every logger
+        returned by :func:`get_logger` is namespaced under it.
     log_level : str, optional
         One of ``DEBUG``, ``INFO``, ``WARNING``, ``ERROR``, ``CRITICAL``.
         Falls back to the ``REPOINGEST_LOG_LEVEL`` environment variable,
         then to ``INFO``.
     log_file : str, optional
-        Path to a log file.  Falls back to the ``REPOINGEST_LOG_FILE``
-        environment variable.  When set, logs are written both to the
-        console and to the file.
-
-    Returns
-    -------
-    logging.Logger
-        The configured root logger.
+        Path to the log file.  Falls back to the ``REPOINGEST_LOG_FILE``
+        environment variable.  When set, logs are written both to the console
+        and to a rotating file.
     """
     global _initialized  # noqa: PLW0603
 
-    level = (log_level or os.getenv("REPOINGEST_LOG_LEVEL") or "INFO").upper()
-
-    logger = logging.getLogger(name)
-    logger.setLevel(getattr(logging, level, logging.INFO))
-
-    # Prevent duplicate handlers if setup_logging is called more than once
     if _initialized:
-        return logger
+        return
 
-    # ── Console handler (colorized when attached to a real terminal) ──
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG)
+    level = (log_level or _env("REPOINGEST_LOG_LEVEL", _DEFAULT_LOG_LEVEL)).upper()
 
-    if sys.stdout.isatty():
-        formatter = _ColoredFormatter(
-            "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-            datefmt="%H:%M:%S",
+    # Remove Loguru's default handler to avoid duplicate console output
+    _base_logger.remove()
+
+    # ── Console sink (colorized when attached to a real terminal) ──
+    if _env("REPOINGEST_LOG_TO_STDOUT", "1") == "1":
+        _base_logger.add(
+            sys.stderr,
+            level=level,
+            format=_make_formatter(colorize=sys.stderr.isatty()),
+            colorize=sys.stderr.isatty(),
+            backtrace=True,
+            diagnose=False,
         )
-    else:
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
 
-    # ── Optional file handler ──
-    file_path = log_file or os.getenv("REPOINGEST_LOG_FILE")
+    # ── Rotating file sink ──
+    file_path = log_file or _env("REPOINGEST_LOG_FILE", "")
     if file_path:
-        file_handler = logging.FileHandler(file_path, encoding="utf-8")
-        file_handler.setLevel(logging.DEBUG)
-        file_formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
+        serialize = _env("REPOINGEST_LOG_JSON", "0") == "1"
+        _base_logger.add(
+            file_path,
+            level="DEBUG",
+            format=_make_formatter(colorize=False),
+            rotation=_env("REPOINGEST_LOG_ROTATION", _DEFAULT_ROTATION),
+            retention=_env("REPOINGEST_LOG_RETENTION", _DEFAULT_RETENTION),
+            compression=_env("REPOINGEST_LOG_COMPRESSION", _DEFAULT_COMPRESSION),
+            encoding="utf-8",
+            enqueue=True,
+            backtrace=True,
+            diagnose=False,
+            serialize=serialize,
         )
-        file_handler.setFormatter(file_formatter)
-        logger.addHandler(file_handler)
+
+    _setup_stdlib_bridge()
 
     _initialized = True
-    return logger
 
 
-def get_logger(child_name: str) -> logging.Logger:
-    """Return a child logger under the ``repoingest`` namespace.
+def get_logger(child_name: str):
+    """Return a Loguru logger bound to the ``repoingest.<child_name>`` namespace.
 
     Parameters
     ----------
@@ -163,8 +208,7 @@ def get_logger(child_name: str) -> logging.Logger:
 
     Returns
     -------
-    logging.Logger
-        A child logger whose output flows through the root ``repoingest``
-        logger's handlers (set up once via :func:`setup_logging`).
+    loguru.Logger
+        A Loguru logger whose records are tagged with the given module.
     """
-    return logging.getLogger(f"repoingest.{child_name}")
+    return _base_logger.bind(module=f"repoingest.{child_name}")

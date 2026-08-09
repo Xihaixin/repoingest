@@ -43,18 +43,18 @@ async def _perform_ingestion(
         )
 
         if isinstance(result, IngestErrorResponse):
-            logger.warning("Ingestion returned error for input='%s': %s", input_text, result.model_dump().get("error"))
+            logger.warning("Ingestion returned error for input='{}': {}", input_text, result.model_dump().get("error"))
             return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=result.model_dump())
 
-        logger.info("Ingestion succeeded for input='%s'", input_text)
+        logger.info("Ingestion succeeded for input='{}'", input_text)
         return JSONResponse(status_code=status.HTTP_200_OK, content=result.model_dump())
 
     except ValueError as ve:
-        logger.warning("Validation error for input='%s': %s", input_text, ve)
+        logger.warning("Validation error for input='{}': {}", input_text, ve)
         error_response = IngestErrorResponse(error=f"Validation error: {ve!s}")
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=error_response.model_dump())
 
     except Exception as exc:
-        logger.error("Internal server error for input='%s': %s", input_text, exc)
+        logger.exception("Internal server error for input='{}': {}", input_text, exc)
         error_response = IngestErrorResponse(error=f"Internal server error: {exc!s}")
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=error_response.model_dump())

@@ -101,7 +101,7 @@ async def process_query(
     except Exception as exc:
         query_url = (query.url if query and query.url else input_text)
         details = _build_query_details(str(query_url), max_file_size, pattern_type, pattern)
-        logger.error("Query failed [%s]: %s", details, exc)
+        logger.exception("Query failed [{}]: {}", details, exc)
         raise
 
     if len(content) > MAX_DISPLAY_SIZE:
@@ -116,7 +116,7 @@ async def process_query(
     except ValueError:
         estimated_tokens = "unknown"
     details = _build_query_details(query.url or input_text, max_file_size, pattern_type, pattern)
-    logger.info("Query succeeded [%s] | tokens=%s", details, str(estimated_tokens).strip())
+    logger.info("Query succeeded [{}] | tokens={}", details, str(estimated_tokens).strip())
 
     return IngestSuccessResponse(
         repo_url=input_text,

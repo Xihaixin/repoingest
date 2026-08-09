@@ -141,10 +141,10 @@ def _gather_file_contents(node: FileSystemNode) -> str:
     str
         The concatenated content of all files under the given node.
     """
-    logger.debug("Handling file node: %s (type=%s)", node.name, node.type)
+    logger.debug("Handling file node: {} (type={})", node.name, node.type)
     if node.type != FileSystemNodeType.DIRECTORY:
         return node.content_string
-    logger.debug("Directory children: %s", [child.name for child in node.children])
+    logger.debug("Directory children: {}", [child.name for child in node.children])
     return "\n".join(_gather_file_contents(child) for child in node.children)
 
 def _format_token_count(text: str) -> Optional[str]:
@@ -167,7 +167,7 @@ def _format_token_count(text: str) -> Optional[str]:
         encoding = tiktoken.get_encoding("cl100k_base")
         total_tokens = len(encoding.encode(text, disallowed_special=()))
     except (ValueError, UnicodeEncodeError) as exc:
-        logger.error("Token estimation failed: %s", exc)
+        logger.error("Token estimation failed: {}", exc)
         return None
     
     if total_tokens >= 1_000_000:
