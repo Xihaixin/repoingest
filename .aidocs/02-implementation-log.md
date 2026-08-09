@@ -324,3 +324,30 @@ await loop.run_in_executor(None, lambda: ctx.run(_clone_repo_sync, config))
 1. **可进一步优化**：可评估完全移除仓库存在性预检（clone 本身对不存在仓库 2-3s 内即报 exit 128），或将探测与 clone 并发执行。
 2. **部署提醒**：部署环境若设置 `REPOINGEST_LOG_FILE`，请使用绝对路径或相对代码 `src/` 目录的路径（不再依赖 cwd）。
 3. **清理**：`src/src/` 目录为修复前的遗留（cwd 错误产生），确认后可手动删除。
+
+---
+
+# Phase 4 · 静态资源请求去噪（2026-08-09）
+
+## 问题
+
+`/static/*` 静态资源（SVG/JS/icon/favicon）每次页面加载拉取十几个，每条都生成 `rid` 并输出 INFO 访问日志，造成日志混乱与臃肿；且此类请求几乎不会失败、溯源价值趋近于零。
+
+## 方案
+
+**文件**：`src/server/middleware.py`
+
+- 新增 `_QUIET_PREFIXES = ("/static/",)` 与 `_should_trace(path)`。
+- `dispatch` 中对命中前缀的请求**直接透传**：不生成 `rid`、不绑定上下文、不输出 `Request started/completed`（含慢请求告警），仅在 DEBUG 级别输出一行 `Static asset request: {path}`（默认 INFO 级别完全不可见）。
+
+## 验证（TestClient，INFO 级别）
+
+| 请求 | X-Request-ID | INFO 访问日志 |
+|------|--------------|---------------|
+| `GET /static/svg/github-star.svg` | **None** | 无 `Request completed`（仅 DEBUG `Static asset request`） |
+| `GET /health` | `fe3d5d85bddf` | 有（含 rid） |
+| `GET /` | `57efffb8b2e2` | 有（含 rid） |
+
+`black --check` 通过。
+
+> 权衡说明：静态资源失败（罕见 404）不再记录，但浏览器侧即可自明，对排查影响可忽略；如需追踪可在 `_QUIET_PREFIXES` 中移除对应前缀。

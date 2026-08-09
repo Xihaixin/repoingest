@@ -5,6 +5,9 @@ Loguru context for the whole request lifecycle (routing, parsing, cloning,
 ingestion, response).  This lets a single failed request be traced end-to-end
 across all log lines, and the identifier is echoed back to the client in the
 ``X-Request-ID`` response header so it can be reported for investigation.
+
+High-volume, low-value asset requests (e.g. ``/static/*``) are passed through
+without a request id or access-log entry so they do not clutter the log.
 """
 
 from __future__ import annotations
@@ -23,6 +26,10 @@ logger = get_logger("server.middleware")
 # Requests slower than this (milliseconds) are reported with a WARNING line.
 _DEFAULT_SLOW_REQUEST_MS = 30_000
 
+# Path prefixes that are high-volume, low-value asset requests: no request id
+# is generated and no access-log line is emitted for them.
+_QUIET_PREFIXES = ("/static/",)
+
 
 def _slow_request_ms() -> float:
     """Return the slow-request threshold in ms (env-configurable)."""
@@ -31,6 +38,11 @@ def _slow_request_ms() -> float:
         return float(raw) if raw else _DEFAULT_SLOW_REQUEST_MS
     except ValueError:
         return _DEFAULT_SLOW_REQUEST_MS
+
+
+def _should_trace(path: str) -> bool:
+    """Return whether a request path deserves request-id tracing and access logs."""
+    return not path.startswith(_QUIET_PREFIXES)
 
 
 def _client_ip(request: Request) -> str:
@@ -52,6 +64,11 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
+        # Static assets: pass through without a request id or access-log entry.
+        if not _should_trace(request.url.path):
+            logger.debug("Static asset request: {}", request.url.path)
+            return await call_next(request)
+
         request_id = uuid.uuid4().hex[:12]
         client_ip = _client_ip(request)
 
