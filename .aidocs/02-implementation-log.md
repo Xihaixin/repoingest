@@ -351,3 +351,80 @@ await loop.run_in_executor(None, lambda: ctx.run(_clone_repo_sync, config))
 `black --check` 通过。
 
 > 权衡说明：静态资源失败（罕见 404）不再记录，但浏览器侧即可自明，对排查影响可忽略；如需追踪可在 `_QUIET_PREFIXES` 中移除对应前缀。
+
+---
+
+# Phase 5 · Home 落地页 + 多语言（i18n）（2026-08-09）
+
+> 设计文档：`04-home-and-i18n-design.md`；分支：`feat/home-and-i18n`
+
+## Stage 1 · i18n 框架
+
+**新增**：`src/server/i18n.py`、`src/server/i18n/en.json`、`src/server/i18n/zh-CN.json`
+
+- `LANGUAGES = {"en", "zh-CN"}`，`DEFAULT_LANGUAGE = "zh-CN"`（对齐国内推广）。
+- `translate(key, lang)`：缺 key 回退 en → 原 key。
+- `get_language(request)`：`?lang=` → cookie → `Accept-Language`（zh*→zh-CN、en*→en）→ 默认。
+- `i18n_context(request)`：注入 `request/lang/t/messages`（messages = en 合并当前语言，供 JS 使用）。
+
+**修改**：`src/server/server_config.py` 新增 `render_template(name, request, **context)`，统一注入 i18n 上下文并渲染，替代散落的 `templates.TemplateResponse`。
+
+## Stage 2 · 路由拆分
+
+**修改**：`src/server/routers/index.py`
+
+| 路由 | 页面 |
+|------|------|
+| `GET /` | `home.jinja`（落地页） |
+| `GET /app` | `index.jinja`（工具），支持 `?repo=` 预填 |
+| `GET /lang/{code}?next=` | 写 `lang` cookie（HttpOnly、max-age 1 年）后 302 回 `next`（`_safe_next` 防开放重定向） |
+
+## Stage 3 · 全局骨架
+
+**修改**：`base.jinja`（`<html lang>`、meta 标题/描述本地化、内联 `window.I18N = {messages}` + `I18N.t()`）、`navbar.jinja`（新增「首页/工具」链接 + 语言切换 `<select>`，沿用原视觉）、`footer.jinja`（版本/Chrome/Python/Discord 文案本地化）。
+
+## Stage 4 · Home 落地页
+
+**新增**：`src/server/templates/home.jinja`
+
+- Hero（复用 `.landing-page-title` + sparkles）+ 主 CTA → `/app`。
+- 工作原理三步卡片（复用偏移阴影卡片风）。
+- 功能特性网格、快速开始、示例仓库按钮（链到 `/app?repo=`）、二次 CTA。
+- 全部复用原 Tailwind 配色/类，未引入新 UI 框架。
+
+## Stage 5 · 工具页翻译
+
+**修改**：`index.jinja`、`git.jinja`、`components/git_form.jinja`（表单各控件、PAT 提示、示例）、`components/result.jinja`（Loading/Summary/Directory/Content/Copy/Download）。
+
+## Stage 6 · JS 国际化
+
+**修改**：`src/static/js/utils.js`
+
+- `Processing...`、`Error(s):`、`An error occurred.`、`Copied!`、`Failed to copy`、`Downloading...`、`Downloaded!`、`Summary:` 等改用 `I18N.t('js.*')`。
+- 新增 `translateError()`：对常见后端英文错误（repository not found、invalid token）做前缀匹配翻译（最佳努力）。
+
+## Stage 7 · dynamic 路由 + 验证
+
+**修改**：`dynamic.py` 改用 `render_template`（slug 页同样获得 i18n 上下文）。
+
+**验证（TestClient）**：
+
+| 用例 | 结果 |
+|------|------|
+| `/`（en） | 200，含 Prompt-friendly/How it works |
+| `/?lang=zh-CN` | 200，含 对提示词友好/工作原理/快速开始 |
+| `/app`（en/zh） | 200，含 Ingest/生成摘要 |
+| `/user/repo`（en/zh） | 200，slug 直达正常 |
+| `/lang/zh-CN?next=/app` | 302 + `Set-Cookie: lang=zh-CN` |
+| cookie 持久化 / Accept-Language zh | 均命中中文 |
+| `/app?repo=...` 预填 | 输入框 value 正确 |
+| `window.I18N` 注入 | 存在，含 `form.submit` 键 |
+
+`black` 格式化通过（i18n.py / server_config.py / index.py / dynamic.py）。
+
+## 遗留事项 / 建议（Phase 5）
+
+1. **后端错误全量 i18n**：当前 API 错误消息保持英文，前端仅对常见错误做最佳努力翻译；如需彻底中文，可改为"错误码化 + 前端映射"。
+2. **更多语言**：新增语言只需复制 `en.json` 并翻译，然后在 `LANGUAGES` 与 navbar `<select>` 增加条目。
+3. **SEO**：`og:image` 仍为英文默认图，后续可补充中文版宣传图。
+4. **注意**：`GET /api`（`api.jinja`）模板不存在为**既有问题**（非本次引入），建议后续修复或改用 `swagger_ui.jinja`。

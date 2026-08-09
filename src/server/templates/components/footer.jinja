@@ -6,14 +6,14 @@
             <div class="flex items-center space-x-4">
                 {{ footer_icon_link('https://chromewebstore.google.com/detail/adfjahbijlkjfoicpjkhjicpjpjfaood',
                                 'icons/chrome.svg',
-                                'Chrome Extension') }}
+                                t('footer.chrome')) }}
                 {{ footer_icon_link('https://pypi.org/project/Repoingest',
                                 'icons/python.svg',
-                                'Python Package') }}
+                                t('footer.python')) }}
             </div>
             {# Middle column - Version information #}
             <div class="flex justify-center">
-                <span>Version:&nbsp;</span>
+                <span>{{ t('footer.version') }}&nbsp;</span>
                 {% if version != "unknown" %}
                     <a href="{{ version_link }}"
                        target="_blank"
@@ -27,7 +27,7 @@
             <div class="flex justify-end">
                 {{ footer_icon_link('https://discord.gg/YsBgcuucBN',
                                 'icons/discord.svg',
-                                'Discord') }}
+                                t('footer.discord')) }}
             </div>
         </div>
     </div>

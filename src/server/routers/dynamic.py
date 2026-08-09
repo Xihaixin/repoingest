@@ -4,10 +4,11 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 
 from server.query_processor import process_query
-from server.server_config import templates
+from server.server_config import render_template
 from server.server_utils import limiter
 
 router = APIRouter()
+
 
 @router.get("/{full_path:path}")
 async def catch_all(request: Request, full_path: str) -> HTMLResponse:
@@ -30,15 +31,14 @@ async def catch_all(request: Request, full_path: str) -> HTMLResponse:
         An HTML response containing the rendered template, with the Git URL
         and other default parameters such as loading state and file size.
     """
-    return templates.TemplateResponse(
+    return render_template(
         "git.jinja",
-        {
-            "request": request,
-            "repo_url": full_path,
-            "loading": True,
-            "default_file_size": 243,
-        },
+        request,
+        repo_url=full_path,
+        loading=True,
+        default_file_size=243,
     )
+
 
 @router.post("/{full_path:path}", response_class=HTMLResponse)
 @limiter.limit("10/minute")
@@ -82,5 +82,3 @@ async def process_catch_all(
         pattern,
         is_index=False,
     )
-
-

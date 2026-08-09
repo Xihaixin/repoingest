@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,16 +15,14 @@
               href="/static/favicons/apple-touch-icon.png"
               sizes="180x180">
         {# Search Engine Meta Tags #}
-        <meta name="title"       content="Repoingest">
-        <meta name="description"
-              content="Replace 'hub' with 'ingest' in any GitHub URL for a prompt-friendly text.">
+        <meta name="title"       content="{{ t('meta.title') }}">
+        <meta name="description" content="{{ t('meta.description') }}">
         <meta name="keywords"
               content="Repoingest, AI tools, LLM integration, Ingest, Digest, Context, Prompt, Git workflow, codebase extraction, Git repository, Git automation, Summarize, prompt-friendly">
         <meta name="robots"      content="index, follow">
         {# Open Graph Meta Tags #}
-        <meta property="og:title"       content="Repoingest">
-        <meta property="og:description"
-              content="Replace 'hub' with 'ingest' in any GitHub URL for a prompt-friendly text.">
+        <meta property="og:title"       content="{{ t('meta.title') }}">
+        <meta property="og:description" content="{{ t('meta.description') }}">
         <meta property="og:type"        content="website">
         <meta property="og:url"         content="{{ request.url }}">
         <meta property="og:image"       content="/static/og-image.png">
@@ -36,17 +34,24 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         {# Twitter card #}
         <meta name="twitter:card"        content="summary_large_image">
-        <meta name="twitter:title"       content="Repoingest">
-        <meta name="twitter:description"
-              content="Replace 'hub' with 'ingest' in any GitHub URL for a prompt-friendly text.">
+        <meta name="twitter:title"       content="{{ t('meta.title') }}">
+        <meta name="twitter:description" content="{{ t('meta.description') }}">
         <meta name="twitter:image"       content="/static/og-image.png">
+        {# Frontend i18n dictionary (consumed by /static/js/*.js) #}
+        <script>
+            window.I18N = {{ messages | tojson }};
+            window.I18N.lang = {{ lang | tojson }};
+            window.I18N.t = function (key) {
+                return Object.prototype.hasOwnProperty.call(window.I18N, key) ? window.I18N[key] : key;
+            };
+        </script>
         {# Title #}
         <title>
             {% block title %}
                 {% if short_repo_url %}
                     Repoingest - {{ short_repo_url }}
                 {% else %}
-                    Repoingest
+                    {{ t('meta.title') }}
                 {% endif %}
             {% endblock %}
         </title>
