@@ -7,9 +7,10 @@
 | 文件 | 内容 |
 |------|------|
 | [`01-logging-system-design.md`](./01-logging-system-design.md) | 设计方案：问题分析、技术选型（Loguru）、目标架构、日志格式、请求溯源设计、轮转策略、验收标准 |
-| [`02-implementation-log.md`](./02-implementation-log.md) | 实施日志：Phase 2–5（日志系统重构、运行期优化、静态去噪、Home + i18n） |
+| [`02-implementation-log.md`](./02-implementation-log.md) | 实施日志：Phase 2–6（日志重构、运行期优化、静态去噪、Home+i18n、任务状态恢复） |
 | [`03-log-analysis-and-proposal.md`](./03-log-analysis-and-proposal.md) | 运行期日志分析（7 个问题）+ 日志记录点/记录信息提案 |
 | [`04-home-and-i18n-design.md`](./04-home-and-i18n-design.md) | Home 落地页 + 多语言（i18n）设计方案 |
+| [`05-job-resume-design.md`](./05-job-resume-design.md) | 处理任务状态保持与恢复（Job Resume）设计方案 |
 
 ## 变更文件清单
 

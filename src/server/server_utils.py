@@ -18,6 +18,7 @@ from slowapi.util import get_remote_address
 from gitingest.config import TMP_BASE_PATH
 from gitingest.utils.git_utils import ensure_git_installed
 from gitingest.utils.logger import get_logger
+from server.job_store import cancel_pending, cleanup_loop
 from server.server_config import DELETE_REPO_AFTER
 
 logger = get_logger("server_utils")
@@ -48,7 +49,10 @@ async def rate_limit_exception_handler(request: Request, exc: Exception) -> Resp
         If the exception is not a RateLimitExceeded error, it is re-raised.
     """
     if isinstance(exc, RateLimitExceeded):
-        logger.warning("Rate limit exceeded for {}", request.client.host if request.client else "unknown")
+        logger.warning(
+            "Rate limit exceeded for {}",
+            request.client.host if request.client else "unknown",
+        )
         return _rate_limit_exceeded_handler(request, exc)
     raise exc
 
@@ -68,13 +72,17 @@ async def lifespan(_: FastAPI):
     None
         Yields control back to the FastAPI application while the background task runs.
     """
-    logger.info("Starting server lifecycle: initializing Git check and cleanup task")
+    logger.info("Starting server lifecycle: initializing Git check and cleanup tasks")
     task = asyncio.create_task(_remove_old_repositories())
+    job_cleanup_task = asyncio.create_task(cleanup_loop())
     yield
-    logger.info("Shutting down server lifecycle: cancelling cleanup task")
+    logger.info("Shutting down server lifecycle: cancelling cleanup tasks")
     task.cancel()
+    job_cleanup_task.cancel()
+    cancel_pending()
     try:
         await task
+        await job_cleanup_task
     except asyncio.CancelledError:
         pass
 
@@ -147,12 +155,14 @@ async def _process_folder(folder: Path) -> None:
                 repo_url = f"{owner}/{repo}"
 
                 with open("history.txt", mode="a", encoding="utf-8") as f:
-                    current_utc_time = datetime.datetime.now(datetime.timezone.utc).strftime(
-                        "%Y-%m-%d %H:%M:%S.%f"
-                    )[:-3]
+                    current_utc_time = datetime.datetime.now(
+                        datetime.timezone.utc
+                    ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
                     f.write(f"[UTC]{current_utc_time} | {repo_url}\n")
 
-                logger.info("Logged repository {} to history.txt before deletion", repo_url)
+                logger.info(
+                    "Logged repository {} to history.txt before deletion", repo_url
+                )
 
     except Exception as exc:
         logger.exception("Error logging repository URL for {}: {}", folder, exc)

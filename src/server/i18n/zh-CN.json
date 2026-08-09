@@ -80,5 +80,12 @@
   "js.content": "文件内容",
 
   "errors.repo_not_found": "仓库不存在",
-  "errors.invalid_token": "GitHub Token 格式无效"
+  "errors.invalid_token": "GitHub Token 格式无效",
+
+  "js.recent": "最近任务",
+  "js.job.running": "处理中",
+  "js.job.done": "已完成",
+  "js.job.error": "失败",
+  "js.job.gone": "该任务已过期或不存在。",
+  "js.job.empty": "暂无最近任务。"
 }

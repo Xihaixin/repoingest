@@ -37,13 +37,21 @@ class IngestRequest(BaseModel):
     token : str | None
         GitHub personal access token (PAT) for accessing private repositories.
 
-    """    
+    """
 
     input_text: str = Field(..., description="Git repository URL or slug to ingest")
-    max_file_size: int = Field(..., ge=1, le=MAX_FILE_SIZE_KB, description="File size in KB")
-    pattern_type: PatternType = Field(default=PatternType.EXCLUDE, description="Pattern type for file filtering")
-    pattern: str = Field(default="", description="Glob/regex pattern for file filtering")
-    token: str | None = Field(default=None, description="GitHub PAT for private repositories")
+    max_file_size: int = Field(
+        ..., ge=1, le=MAX_FILE_SIZE_KB, description="File size in KB"
+    )
+    pattern_type: PatternType = Field(
+        default=PatternType.EXCLUDE, description="Pattern type for file filtering"
+    )
+    pattern: str = Field(
+        default="", description="Glob/regex pattern for file filtering"
+    )
+    token: str | None = Field(
+        default=None, description="GitHub PAT for private repositories"
+    )
 
     @field_validator("input_text")
     @classmethod
@@ -52,13 +60,13 @@ class IngestRequest(BaseModel):
             err = "input_text cannot be empty"
             raise ValueError(err)
         return removesuffix(v.strip(), ".git")
-    
+
     @field_validator("pattern")
     @classmethod
     def validate_pattern(cls, v: str) -> str:
         """Validate ``pattern`` field."""
         return v.strip()
-    
+
     @field_validator("max_file_size", mode="before")
     @classmethod
     def str_to_int(cls, v):
@@ -72,7 +80,7 @@ class IngestRequest(BaseModel):
         if v == "":
             return None
         return v
-    
+
 
 class IngestSuccessResponse(BaseModel):
     """Success response model for the /api/ingest endpoint.
@@ -105,9 +113,11 @@ class IngestSuccessResponse(BaseModel):
     summary: str = Field(..., description="Ingestion summary with token estimates")
     tree: str = Field(..., description="File tree structure")
     content: str = Field(..., description="Processed file content")
-    default_max_file_size: int = Field(..., description="File size slider position used")
+    default_max_file_size: int = Field(
+        ..., description="File size slider position used"
+    )
     pattern_type: str = Field(..., description="Pattern type used")
-    pattern: str = Field(..., description="Pattern used")        
+    pattern: str = Field(..., description="Pattern used")
 
 
 class IngestErrorResponse(BaseModel):
@@ -121,6 +131,48 @@ class IngestErrorResponse(BaseModel):
     """
 
     error: str = Field(..., description="Error message")
+
+
+class JobCreatedResponse(BaseModel):
+    """Response returned immediately when an ingest job is created.
+
+    Attributes
+    ----------
+    job_id : str
+        The unique identifier of the background job.
+    status : str
+        Always ``running`` at creation time.
+
+    """
+
+    job_id: str = Field(..., description="Job identifier for polling")
+    status: str = Field(
+        "running", description="Job status (always running on creation)"
+    )
+
+
+class JobStatusResponse(BaseModel):
+    """Status of an ingest job, optionally with the full result.
+
+    Attributes
+    ----------
+    id : str
+        The job identifier.
+    status : str
+        One of ``running``, ``done`` or ``error``.
+    result : IngestSuccessResponse | None
+        The ingestion result when the job completed successfully.
+    error : str | None
+        The error message when the job failed.
+
+    """
+
+    id: str = Field(..., description="Job identifier")
+    status: str = Field(..., description="running | done | error")
+    result: Optional[IngestSuccessResponse] = Field(
+        None, description="Result when done"
+    )
+    error: Optional[str] = Field(None, description="Error message when failed")
 
 
 # Union type for API responses

@@ -139,6 +139,218 @@ function translateError(text) {
     return text;
 }
 
+// ── Cookie helpers & browser identity (uid) ────────────────────────
+function getCookie(name) {
+    const escaped = name.replace(/([.*+?^=!:${}()|[\]/\\])/g, '\\$1');
+    const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
+
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+function setCookie(name, value, days) {
+    const date = new Date();
+
+    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${date.toUTCString()}; SameSite=Lax`;
+}
+
+function ensureUid() {
+    let uid = getCookie('repoingest_uid');
+
+    if (!uid) {
+        uid = (window.crypto && window.crypto.randomUUID)
+            ? crypto.randomUUID()
+            : ('uid-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2));
+        setCookie('repoingest_uid', uid, 365);
+    }
+
+    return uid;
+}
+
+// ── Job polling / resume ───────────────────────────────────────────
+function stopPoll(jobId) {
+    const timers = window.pollTimers;
+
+    if (timers && timers[jobId]) {
+        clearInterval(timers[jobId]);
+        delete timers[jobId];
+    }
+}
+
+function pollJob(jobId) {
+    const timers = window.pollTimers || (window.pollTimers = {});
+    const submitButton = document.querySelector('#ingestForm button[type="submit"]');
+
+    const poll = () => {
+        fetch('/api/jobs/' + jobId)
+            .then(async (response) => {
+                let data;
+
+                try {
+                    data = await response.json();
+                } catch {
+                    data = {};
+                }
+
+                if (!response.ok) {
+                    // Job expired / server restarted
+                    stopPoll(jobId);
+                    setButtonLoadingState(submitButton, false);
+                    showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${I18N.t('js.job.gone')}</div>`);
+                    loadRecentJobs(false);
+
+                    return;
+                }
+
+                if (data.status === 'running') {
+                    return; // keep polling
+                }
+
+                stopPoll(jobId);
+                setButtonLoadingState(submitButton, false);
+
+                if (data.status === 'error') {
+                    showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${translateError(data.error || I18N.t('js.error'))}</div>`);
+                } else if (data.result) {
+                    handleSuccessfulResponse(data.result);
+                }
+
+                loadRecentJobs(false);
+            })
+            .catch(() => { /* transient network error: keep polling */ });
+    };
+
+    stopPoll(jobId);
+    timers[jobId] = setInterval(poll, 2000);
+    poll();
+}
+
+function statusLabel(status) {
+    if (status === 'running') {
+        return I18N.t('js.job.running');
+    }
+    if (status === 'error') {
+        return I18N.t('js.job.error');
+    }
+
+    return I18N.t('js.job.done');
+}
+
+function statusColor(status) {
+    if (status === 'running') {
+        return 'bg-[#ffc480]';
+    }
+    if (status === 'error') {
+        return 'bg-[#FE4A60] text-white';
+    }
+
+    return 'bg-[#EBDBB7]';
+}
+
+function renderJobList(jobs) {
+    const container = document.getElementById('recent-jobs');
+    const list = document.getElementById('recent-jobs-list');
+
+    if (!container || !list) {
+        return false;
+    }
+
+    if (!jobs.length) {
+        container.classList.add('hidden');
+        return true;
+    }
+
+    container.classList.remove('hidden');
+    list.innerHTML = '';
+
+    jobs.forEach((job) => {
+        const li = document.createElement('li');
+
+        li.className = 'flex items-center justify-between gap-3 border-[3px] border-gray-900 rounded-lg bg-white px-3 py-2 cursor-pointer hover:bg-[#ffc480]/20';
+        li.onclick = () => openJob(job);
+
+        const repo = document.createElement('span');
+
+        repo.className = 'text-gray-900 font-medium text-sm truncate';
+        repo.textContent = job.repo_url || job.id.slice(0, 12);
+
+        const badge = document.createElement('span');
+
+        badge.className = `text-xs font-bold px-2 py-0.5 rounded-sm border border-gray-900 flex-shrink-0 ${statusColor(job.status)}`;
+        badge.textContent = statusLabel(job.status);
+
+        li.appendChild(repo);
+        li.appendChild(badge);
+        list.appendChild(li);
+    });
+
+    return true;
+}
+
+function openJob(job) {
+    const submitButton = document.querySelector('#ingestForm button[type="submit"]');
+
+    if (job.status === 'running') {
+        showLoading();
+        if (submitButton) {
+            setButtonLoadingState(submitButton, true);
+        }
+        pollJob(job.id);
+
+        return;
+    }
+
+    // done / error: fetch the full job and render it
+    fetch('/api/jobs/' + job.id)
+        .then(async (response) => {
+            if (!response.ok) {
+                showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${I18N.t('js.job.gone')}</div>`);
+                return;
+            }
+            const data = await response.json();
+
+            if (data.status === 'error') {
+                showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${translateError(data.error || I18N.t('js.error'))}</div>`);
+            } else if (data.result) {
+                handleSuccessfulResponse(data.result);
+            }
+        })
+        .catch(() => {});
+}
+
+function loadRecentJobs(resume = true) {
+    ensureUid();
+    fetch('/api/jobs')
+        .then(async (response) => {
+            if (!response.ok) {
+                return;
+            }
+            let data;
+
+            try {
+                data = await response.json();
+            } catch {
+                data = {};
+            }
+
+            const jobs = data.jobs || [];
+
+            if (!renderJobList(jobs) || !resume) {
+                return;
+            }
+
+            if (jobs.length) {
+                autoResume(jobs);
+            }
+        })
+        .catch(() => {});
+}
+
+function autoResume(jobs) {
+    // jobs is newest-first: resume the most recent one
+    openJob(jobs[0]);
+}
+
 // Helper function to collect form data
 function collectFormData(form) {
     const json_data = {};
@@ -242,11 +454,14 @@ function handleSubmit(event, showLoadingSpinner = false) {
 
     const json_data = collectFormData(form);
 
+    ensureUid();
+
     if (showLoadingSpinner) {
         setButtonLoadingState(submitButton, true);
     }
 
-    // Submit the form to /api/ingest as JSON
+    // Submit the form to /api/ingest as JSON; the endpoint creates a
+    // background job and returns 202 + job_id, which we then poll.
     fetch('/api/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -260,9 +475,10 @@ function handleSubmit(event, showLoadingSpinner = false) {
             } catch {
                 data = {};
             }
-            setButtonLoadingState(submitButton, false);
 
             if (!response.ok) {
+                setButtonLoadingState(submitButton, false);
+
                 // Show all error details if present
                 if (Array.isArray(data.detail)) {
                     const details = data.detail.map((d) => `<li>${d.msg || JSON.stringify(d)}</li>`).join('');
@@ -277,13 +493,16 @@ function handleSubmit(event, showLoadingSpinner = false) {
                 return;
             }
 
-            // Handle error in data
-            if (data.error) {
-                showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${translateError(data.error)}</div>`);
+            // 202: job created -> poll until done/error (keeps loading state)
+            if (data.job_id) {
+                loadRecentJobs(false);
+                pollJob(data.job_id);
 
                 return;
             }
 
+            // Fallback: an unexpected synchronous result
+            setButtonLoadingState(submitButton, false);
             handleSuccessfulResponse(data);
         })
         .catch((error) => {
@@ -420,6 +639,7 @@ function setupGlobalEnterHandler() {
 document.addEventListener('DOMContentLoaded', () => {
     initializeSlider();
     setupGlobalEnterHandler();
+    loadRecentJobs(true);
 });
 
 

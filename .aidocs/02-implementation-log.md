@@ -428,3 +428,73 @@ await loop.run_in_executor(None, lambda: ctx.run(_clone_repo_sync, config))
 2. **更多语言**：新增语言只需复制 `en.json` 并翻译，然后在 `LANGUAGES` 与 navbar `<select>` 增加条目。
 3. **SEO**：`og:image` 仍为英文默认图，后续可补充中文版宣传图。
 4. **注意**：`GET /api`（`api.jinja`）模板不存在为**既有问题**（非本次引入），建议后续修复或改用 `swagger_ui.jinja`。
+
+---
+
+# Phase 6 · 处理任务状态保持与恢复（Job Resume）（2026-08-10）
+
+> 设计文档：`05-job-resume-design.md`；分支：`feat/home-and-i18n`
+
+## 已确认需求（用户决策）
+
+1. 用户中途离开 → **后台继续处理**。
+2. 结果保留 **2 小时**（含失败），涉及仓库内容隐私。
+3. `/api/ingest` 无外部调用方，**可改为 202+job_id+轮询**。
+4. `/app` 提供**最近任务列表**（按浏览器 uid 归类）。
+
+## Stage 1 · Job Store
+
+**新增**：`src/server/job_store.py`
+
+- 内存字典 + `asyncio.Lock`；字段 `id/uid/status/result/error/params/created_at/updated_at`。
+- `create/get/update/list_for_uid/cleanup`；`JOB_TTL_SECONDS=2h`、`MAX_JOBS_PER_UID=20`。
+- `spawn()/cancel_pending()` 后台任务追踪；`cleanup_loop()` 周期性清理（每 5 分钟）。
+
+## Stage 2 · 后端改造
+
+**修改**：`ingest.py`、`routers_utils.py`（移除同步 `_perform_ingestion`）、`server_utils.py`（lifespan 加 job 清理任务）、`main.py`（注册 jobs 路由）、`models.py`（`JobCreatedResponse`/`JobStatusResponse`）、`routers/__init__.py`。
+
+**新增**：`src/server/routers/jobs.py`
+
+| 端点 | 行为 |
+|------|------|
+| `POST /api/ingest` | 读 `repoingest_uid` cookie → 创建 job → 后台任务 → **202** `{job_id,status}`（限流 10/min） |
+| `GET /api/jobs` | 按 uid 返回最近 10 条元数据（限流 60/min） |
+| `GET /api/jobs/{id}` | 能力凭证获取完整结果/错误（限流 120/min） |
+
+- 后台 `_run_job`：`process_query` → `status=done`+result / 异常 → `status=error`；日志以 `job_id` 为追踪标识。
+
+## Stage 3 · i18n 键
+
+**修改**：`en.json` / `zh-CN.json` 新增 `js.recent`、`js.job.running/done/error/gone/empty`。
+
+## Stage 4 · 前端
+
+**修改**：`index.jinja`（新增「最近任务」卡片区块）、`utils.js`
+
+- cookie 助手 + `ensureUid()`（浏览器伪身份）。
+- `handleSubmit`：POST `/api/ingest` → 202 → `pollJob(job_id)`（保持加载态），不再同步等待。
+- `pollJob`：每 2s 轮询 `GET /api/jobs/{id}`；running 持续、done/error 渲染结果/错误；404 → 提示过期。
+- `loadRecentJobs(resume)`：页面加载时拉取列表并**自动恢复最新任务**（running→处理中、done→渲染结果、error→显示错误）。
+- `renderJobList/openJob`：最近任务列表，点选查看历史结果/接管轮询。
+
+## Stage 5 · 验证（TestClient）
+
+| 用例 | 结果 |
+|------|------|
+| `POST /api/ingest`（未知域名） | 202 + job_id；轮询后 `status=error`（Unknown domain） ✅ |
+| 注入 done job → `GET /api/jobs/{id}` | 返回完整 result（summary/tree/content） ✅ |
+| uid A 创建任务 | A 列表可见、**uid B 列表为空**（scoping 正确） ✅ |
+| `GET /api/jobs/unknown` | 404 ✅ |
+| `/app` HTML | 含 `recent-jobs` 区块、表单、结果区、I18N 键 ✅ |
+| `/app?lang=zh-CN` | 含「最近任务」 ✅ |
+| 真实仓库 clone（GitHub 慢网） | 任务保持 running 后台执行（符合设计：离开可续） |
+
+`black` 通过；`node --check utils.js` 通过。
+
+## 遗留事项 / 建议（Phase 6）
+
+1. **内存限制**：job 结果保存在内存（TTL 2h / 每 uid 20 条）；服务重启即丢失。如需要跨重启，可落盘 JSON（与 `/download` 的 digest 文件互补）。
+2. **取消任务**：当前未提供取消接口；如需可加 `DELETE /api/jobs/{id}`（需同步取消 `_run_job`）。
+3. **多实例部署**：内存 store 不共享，多 worker/多实例时任务可能落在不同进程；单 worker 部署无影响。若多实例，需换 Redis 等外部存储。
+4. **轮询压力**：每任务 2s 轮询，客户端多开时注意限流（GET /api/jobs 60/min）。

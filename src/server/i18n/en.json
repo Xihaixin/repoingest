@@ -80,5 +80,12 @@
   "js.content": "Files Content",
 
   "errors.repo_not_found": "Repository not found",
-  "errors.invalid_token": "Invalid GitHub token format"
+  "errors.invalid_token": "Invalid GitHub token format",
+
+  "js.recent": "Recent digests",
+  "js.job.running": "Processing",
+  "js.job.done": "Done",
+  "js.job.error": "Failed",
+  "js.job.gone": "This digest is no longer available (expired).",
+  "js.job.empty": "No recent digests yet."
 }

@@ -46,7 +46,7 @@ logger.info("Logging to file: {}", _log_file)
 # Load environment variables from .env file
 load_dotenv(dotenv_path=_PKG_DIR / ".env")
 
-from server.routers import download, dynamic, index, ingest
+from server.routers import download, dynamic, index, ingest, jobs
 from server.middleware import RequestLoggingMiddleware
 from server.server_config import templates
 from server.server_utils import lifespan, limiter, rate_limit_exception_handler
@@ -160,6 +160,7 @@ async def robots() -> FileResponse:
 app.include_router(index)
 app.include_router(download)
 app.include_router(ingest)
+app.include_router(jobs)
 app.include_router(dynamic)
 
 
