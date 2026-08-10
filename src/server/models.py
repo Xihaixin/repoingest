@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, Optional
 
 from pydantic import BaseModel, Field, field_validator
 from server.server_config import MAX_FILE_SIZE_KB

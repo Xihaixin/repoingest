@@ -36,6 +36,7 @@ async def process_query(
     pattern_type: PatternType,
     pattern: str = "",
     token: Optional[str] = None,
+    is_index: bool = False,
 ) -> IngestResponse:
     """
     Process a query by parsing input, cloning a repository, and generating a summary.
