@@ -36,14 +36,13 @@ async def _run_job(job_id: str, ingest_request: IngestRequest) -> None:
         logger.exception("Job failed [job_id={}]", job_id)
 
 
-@router.post("/api/ingest", response_model=JobCreatedResponse, status_code=202)
-@limiter.limit("10/minute")
-async def api_ingest(request: Request, ingest_request: IngestRequest) -> JSONResponse:
-    """Create a background ingest job and return its id immediately.
+async def create_ingest_job(
+    request: Request, ingest_request: IngestRequest
+) -> dict[str, str]:
+    """Create a background ingest job and start it.
 
-    **This endpoint creates a job and returns ``202`` with a ``job_id``.**
-    Poll ``GET /api/jobs/{job_id}`` to obtain the result once processing
-    finishes (``status`` becomes ``done`` or ``error``).
+    Shared by the JSON API (``/api/ingest``) and the legacy form-fallback
+    route so both behave identically.
     """
     uid = request.cookies.get("repoingest_uid", "")
     job = await job_store.create(
@@ -56,6 +55,17 @@ async def api_ingest(request: Request, ingest_request: IngestRequest) -> JSONRes
         },
     )
     spawn(_run_job(job["id"], ingest_request))
-    return JSONResponse(
-        status_code=202, content={"job_id": job["id"], "status": "running"}
-    )
+    return {"job_id": job["id"], "status": "running"}
+
+
+@router.post("/api/ingest", response_model=JobCreatedResponse, status_code=202)
+@limiter.limit("10/minute")
+async def api_ingest(request: Request, ingest_request: IngestRequest) -> JSONResponse:
+    """Create a background ingest job and return its id immediately.
+
+    **This endpoint creates a job and returns ``202`` with a ``job_id``.**
+    Poll ``GET /api/jobs/{job_id}`` to obtain the result once processing
+    finishes (``status`` becomes ``done`` or ``error``).
+    """
+    payload = await create_ingest_job(request, ingest_request)
+    return JSONResponse(status_code=202, content=payload)

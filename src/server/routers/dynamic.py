@@ -1,9 +1,10 @@
 """This module defines the dynamic router for handling dynamic path requests."""
 
 from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
-from server.query_processor import process_query
+from server.models import IngestRequest, PatternType
+from server.routers.ingest import create_ingest_job
 from server.server_config import render_template
 from server.server_utils import limiter
 
@@ -40,20 +41,22 @@ async def catch_all(request: Request, full_path: str) -> HTMLResponse:
     )
 
 
-@router.post("/{full_path:path}", response_class=HTMLResponse)
+@router.post("/{full_path:path}")
 @limiter.limit("10/minute")
 async def process_catch_all(
     request: Request,
     input_text: str = Form(...),
     max_file_size: int = Form(...),
-    pattern_type: str = Form(...),
+    pattern_type: PatternType = Form(...),
     pattern: str = Form(...),
-) -> HTMLResponse:
+    token: str = Form(""),
+) -> JSONResponse:
     """
     Process the form submission with user input for query parameters.
 
-    This endpoint handles POST requests, processes the input parameters (e.g., text, file size, pattern),
-    and calls the `process_query` function to handle the query logic, returning the result as an HTML response.
+    This endpoint catches native (no-JavaScript) form submissions and forwards
+    them to the same background job pipeline as ``POST /api/ingest``, returning
+    the identical ``202`` response with a ``job_id``.
 
     Parameters
     ----------
@@ -63,22 +66,25 @@ async def process_catch_all(
         The input text provided by the user for processing, by default taken from the form.
     max_file_size : int
         The maximum allowed file size for the input, specified by the user.
-    pattern_type : str
+    pattern_type : PatternType
         The type of pattern used for the query, specified by the user.
     pattern : str
         The pattern string used in the query, specified by the user.
+    token : str
+        Optional GitHub personal access token for private repositories.
 
     Returns
     -------
-    HTMLResponse
-        An HTML response generated after processing the form input and query logic,
-        which will be rendered and returned to the user.
+    JSONResponse
+        A ``202`` response with ``{"job_id": ..., "status": "running"}``,
+        identical to the ``/api/ingest`` endpoint.
     """
-    return await process_query(
-        request,
-        input_text,
-        max_file_size,
-        pattern_type,
-        pattern,
-        is_index=False,
+    ingest_request = IngestRequest(
+        input_text=input_text,
+        max_file_size=max_file_size,
+        pattern_type=pattern_type,
+        pattern=pattern,
+        token=token,
     )
+    payload = await create_ingest_job(request, ingest_request)
+    return JSONResponse(status_code=202, content=payload)
