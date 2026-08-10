@@ -1,4 +1,4 @@
-"""This module defines the FastAPI router for the home / landing pages."""
+"""该模块定义用于首页 / 落地页的 FastAPI 路由。"""
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 def _safe_next(next_url: str) -> str:
-    """Return a safe local redirect target (prevents open redirects)."""
+    """返回一个安全的本地重定向目标（防止开放重定向）。"""
     if next_url.startswith("/") and not next_url.startswith("//"):
         return next_url
     return "/"
@@ -19,17 +19,17 @@ def _safe_next(next_url: str) -> str:
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def home(request: Request) -> HTMLResponse:
     """
-    Render the landing page that introduces the project to new visitors.
+    渲染用于向新访客介绍项目的落地页。
 
-    Parameters
+    参数
     ----------
     request : Request
-        The incoming HTTP request.
+        传入的 HTTP 请求。
 
-    Returns
+    返回
     -------
     HTMLResponse
-        The rendered landing page.
+        渲染后的落地页。
     """
     context = {
         "examples": EXAMPLE_REPOS,
@@ -42,17 +42,17 @@ async def home(request: Request) -> HTMLResponse:
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)
 async def app_page(request: Request) -> HTMLResponse:
     """
-    Render the Ingest tool (form + results).
+    渲染 Ingest 工具页面（表单 + 结果）。
 
-    Parameters
+    参数
     ----------
     request : Request
-        The incoming HTTP request.
+        传入的 HTTP 请求。
 
-    Returns
+    返回
     -------
     HTMLResponse
-        The rendered tool page.
+        渲染后的工具页面。
     """
     context = {
         "examples": EXAMPLE_REPOS,
@@ -67,19 +67,19 @@ async def app_page(request: Request) -> HTMLResponse:
 @router.get("/lang/{code}", include_in_schema=False)
 async def switch_language(request: Request, code: str) -> RedirectResponse:
     """
-    Persist the chosen language in a cookie and redirect back to the caller.
+    将所选语言持久化到 cookie 中，并重定向回调用方。
 
-    Parameters
+    参数
     ----------
     request : Request
-        The incoming HTTP request.
+        传入的 HTTP 请求。
     code : str
-        One of the supported language codes (e.g. ``zh-CN``, ``en``).
+        受支持的语言代码之一（例如 ``zh-CN``、``en``）。
 
-    Returns
+    返回
     -------
     RedirectResponse
-        A redirect back to ``next`` (or ``/``) with the language cookie set.
+        重定向回 ``next``（或 ``/``），并设置语言 cookie。
     """
     if code not in LANGUAGES:
         code = "en"

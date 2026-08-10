@@ -1,4 +1,4 @@
-"""Pydantic models for the query form."""
+"""查询表单的 Pydantic 模型。"""
 
 from __future__ import annotations
 
@@ -15,27 +15,27 @@ if TYPE_CHECKING:
 
 
 class PatternType(str, Enum):
-    """Enumeration for pattern types used in file filtering."""
+    """用于文件过滤的模式类型枚举。"""
 
     INCLUDE = "include"
     EXCLUDE = "exclude"
 
 
 class IngestRequest(BaseModel):
-    """Request model for the /api/ingest endpoint.
+    """/api/ingest 端点的请求模型。
 
-    Attributes
+    属性
     ----------
     input_text : str
-        The Git repository URL or slug to ingest.
+        要摄入的 Git 仓库 URL 或 slug。
     max_file_size : int
-        Maximum file size slider position (0-500) for filtering files.
+        用于过滤文件的最大文件大小滑块位置（0-500）。
     pattern_type : PatternType
-        Type of pattern to use for file filtering (include or exclude).
+        用于文件过滤的模式类型（include 或 exclude）。
     pattern : str
-        Glob/regex pattern string for file filtering.
+        用于文件过滤的 Glob/正则模式字符串。
     token : str | None
-        GitHub personal access token (PAT) for accessing private repositories.
+        用于访问私有仓库的 GitHub 个人访问令牌（PAT）。
 
     """
 
@@ -64,7 +64,7 @@ class IngestRequest(BaseModel):
     @field_validator("pattern")
     @classmethod
     def validate_pattern(cls, v: str) -> str:
-        """Validate ``pattern`` field."""
+        """验证 ``pattern`` 字段。"""
         return v.strip()
 
     @field_validator("max_file_size", mode="before")
@@ -83,28 +83,28 @@ class IngestRequest(BaseModel):
 
 
 class IngestSuccessResponse(BaseModel):
-    """Success response model for the /api/ingest endpoint.
+    """/api/ingest 端点的成功响应模型。
 
-    Attributes
+    属性
     ----------
     repo_url : str
-        The original repository URL that was processed.
+        被处理的原始仓库 URL。
     short_repo_url : str
-        Short form of repository URL (user/repo).
+        仓库 URL 的简短形式（user/repo）。
     summary : str
-        Summary of the ingestion process including token estimates.
+        摄入过程的摘要，包含 token 估算值。
     digest_url : str
-        URL to download the full digest content (either S3 URL or local download endpoint).
+        下载完整摘要内容的 URL（S3 URL 或本地下载端点）。
     tree : str
-        File tree structure of the repository.
+        仓库的文件树结构。
     content : str
-        Processed content from the repository files.
+        仓库文件中处理后的内容。
     default_max_file_size : int
-        The file size slider position used.
+        使用的文件大小滑块位置。
     pattern_type : str
-        The pattern type used for filtering.
+        用于过滤的模式类型。
     pattern : str
-        The pattern used for filtering.
+        用于过滤的模式。
 
     """
 
@@ -121,12 +121,12 @@ class IngestSuccessResponse(BaseModel):
 
 
 class IngestErrorResponse(BaseModel):
-    """Error response model for the /api/ingest endpoint.
+    """/api/ingest 端点的错误响应模型。
 
-    Attributes
+    属性
     ----------
     error : str
-        Error message describing what went wrong.
+        描述出错原因的错误信息。
 
     """
 
@@ -134,14 +134,14 @@ class IngestErrorResponse(BaseModel):
 
 
 class JobCreatedResponse(BaseModel):
-    """Response returned immediately when an ingest job is created.
+    """创建摄入任务时立即返回的响应。
 
-    Attributes
+    属性
     ----------
     job_id : str
-        The unique identifier of the background job.
+        后台任务的唯一标识符。
     status : str
-        Always ``running`` at creation time.
+        创建时始终为 ``running``。
 
     """
 
@@ -152,18 +152,18 @@ class JobCreatedResponse(BaseModel):
 
 
 class JobStatusResponse(BaseModel):
-    """Status of an ingest job, optionally with the full result.
+    """摄入任务的状态，可选择附带完整结果。
 
-    Attributes
+    属性
     ----------
     id : str
-        The job identifier.
+        任务标识符。
     status : str
-        One of ``running``, ``done`` or ``error``.
+        为 ``running``、``done`` 或 ``error`` 之一。
     result : IngestSuccessResponse | None
-        The ingestion result when the job completed successfully.
+        任务成功完成时的摄入结果。
     error : str | None
-        The error message when the job failed.
+        任务失败时的错误信息。
 
     """
 
@@ -175,25 +175,25 @@ class JobStatusResponse(BaseModel):
     error: Optional[str] = Field(None, description="Error message when failed")
 
 
-# Union type for API responses
+# API 响应的联合类型
 IngestResponse = Union[IngestSuccessResponse, IngestErrorResponse]
 
 
 class QueryForm(BaseModel):
-    """Form data for the query.
+    """查询的表单数据。
 
-    Attributes
+    属性
     ----------
     input_text : str
-        Text or URL supplied in the form.
+        表单中提供的文本或 URL。
     max_file_size : int
-        The maximum allowed file size for the input, specified by the user.
+        用户指定的输入允许的最大文件大小。
     pattern_type : str
-        The type of pattern used for the query (``include`` or ``exclude``).
+        查询使用的模式类型（``include`` 或 ``exclude``）。
     pattern : str
-        Glob/regex pattern string.
+        Glob/正则模式字符串。
     token : str | None
-        GitHub personal access token (PAT) for accessing private repositories.
+        用于访问私有仓库的 GitHub 个人访问令牌（PAT）。
 
     """
 
@@ -212,25 +212,25 @@ class QueryForm(BaseModel):
         pattern: StrForm,
         token: OptStrForm,
     ) -> QueryForm:
-        """Create a QueryForm from FastAPI form parameters.
+        """从 FastAPI 表单参数创建 QueryForm。
 
-        Parameters
+        参数
         ----------
         input_text : StrForm
-            The input text provided by the user.
+            用户提供的输入文本。
         max_file_size : IntForm
-            The maximum allowed file size for the input.
+            输入允许的最大文件大小。
         pattern_type : StrForm
-            The type of pattern used for the query (``include`` or ``exclude``).
+            查询使用的模式类型（``include`` 或 ``exclude``）。
         pattern : StrForm
-            Glob/regex pattern string.
+            Glob/正则模式字符串。
         token : OptStrForm
-            GitHub personal access token (PAT) for accessing private repositories.
+            用于访问私有仓库的 GitHub 个人访问令牌（PAT）。
 
-        Returns
+        返回
         -------
         QueryForm
-            The QueryForm instance.
+            QueryForm 实例。
 
         """
         return cls(

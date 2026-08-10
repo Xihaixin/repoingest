@@ -1,4 +1,4 @@
-"""Process a query by parsing input, cloning a repository, and generating a summary."""
+"""通过解析输入、克隆仓库并生成摘要来处理查询。"""
 
 from typing import Optional
 
@@ -15,10 +15,10 @@ logger = get_logger("query_processor")
 def _build_query_details(
     url: str, max_file_size: int, pattern_type: str, pattern: str
 ) -> str:
-    """Build a human-readable string describing a query's parameters.
+    """构建描述查询参数的人类可读字符串。
 
-    ``max_file_size`` is the file size slider position expressed in KB, so it
-    is reported directly as ``<n>kb`` and the default (50) is omitted.
+    ``max_file_size`` 是以 KB 表示的文件大小滑块位置，因此直接以
+    ``<n>kb`` 形式报告，默认值（50）会被省略。
     """
     parts = [f"url={url}"]
     if max_file_size != 50:
@@ -39,33 +39,33 @@ async def process_query(
     is_index: bool = False,
 ) -> IngestResponse:
     """
-    Process a query by parsing input, cloning a repository, and generating a summary.
+    通过解析输入、克隆仓库并生成摘要来处理查询。
 
-    Handle user input, process Git repository data, and prepare
-    a response for rendering a template with the processed results or an error message.
+    处理用户输入、处理 Git 仓库数据，并准备
+    用于渲染模板的响应，其中包含处理结果或错误信息。
 
-    Parameters
+    参数
     ----------
     input_text : str
-        Input text provided by the user, typically a Git repository URL or slug.
+        用户提供的输入文本，通常是 Git 仓库 URL 或 slug。
     max_file_size : int
-        Position of the slider, representing the maximum file size in the query.
+        滑块位置，表示查询中的最大文件大小。
     pattern_type : PatternType
-        Type of pattern to use, either "include" or "exclude".
+        要使用的模式类型，为 "include" 或 "exclude"。
     pattern : str
-        Pattern to include or exclude in the query, depending on the pattern type.
+        查询中包含或排除的模式，取决于模式类型。
     token : str, optional
-        GitHub personal access token (PAT) for accessing private repositories.
+        用于访问私有仓库的 GitHub 个人访问令牌（PAT）。
 
-    Returns
+    返回
     -------
     IngestResponse
-        Success or error response containing the processed results.
+        包含处理结果的成功或错误响应。
 
-    Raises
+    异常
     ------
     ValueError
-        If an invalid pattern type is provided.
+        如果提供了无效的模式类型。
     """
     if token:
         validate_github_token(token)
@@ -121,7 +121,7 @@ async def process_query(
             "download full ingest to see more)\n" + content[:MAX_DISPLAY_SIZE]
         )
 
-    # Log success with token estimate if available
+    # 在可用时记录成功日志并附带 token 估算值
     try:
         estimated_tokens = summary[summary.index("Estimated tokens:") + len("Estimated tokens:") :]
     except ValueError:

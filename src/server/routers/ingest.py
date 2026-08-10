@@ -1,7 +1,7 @@
-"""Ingest endpoint for the API (job-based).
+"""API 的 Ingest 端点（基于任务）。
 
-Ingestion runs as a background task so the client can navigate away and later
-resume the job via ``GET /api/jobs`` / ``GET /api/jobs/{job_id}``.
+摄取以后台任务方式运行，因此客户端可以离开页面，稍后通过
+``GET /api/jobs`` / ``GET /api/jobs/{job_id}`` 恢复任务。
 """
 
 from fastapi import APIRouter, Request
@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 async def _run_job(job_id: str, ingest_request: IngestRequest) -> None:
-    """Run the ingestion for a job in the background and store the outcome."""
+    """在后台运行任务的摄取流程并保存结果。"""
     logger.info("Job started [job_id={}] url={}", job_id, ingest_request.input_text)
     try:
         result = await process_query(
@@ -39,10 +39,10 @@ async def _run_job(job_id: str, ingest_request: IngestRequest) -> None:
 async def create_ingest_job(
     request: Request, ingest_request: IngestRequest
 ) -> dict[str, str]:
-    """Create a background ingest job and start it.
+    """创建一个后台摄取任务并启动它。
 
-    Shared by the JSON API (``/api/ingest``) and the legacy form-fallback
-    route so both behave identically.
+    由 JSON API（``/api/ingest``）和旧版表单回退路由共用，
+    以保证两者行为一致。
     """
     uid = request.cookies.get("repoingest_uid", "")
     job = await job_store.create(
@@ -61,11 +61,11 @@ async def create_ingest_job(
 @router.post("/api/ingest", response_model=JobCreatedResponse, status_code=202)
 @limiter.limit("10/minute")
 async def api_ingest(request: Request, ingest_request: IngestRequest) -> JSONResponse:
-    """Create a background ingest job and return its id immediately.
+    """创建一个后台摄取任务并立即返回其 id。
 
-    **This endpoint creates a job and returns ``202`` with a ``job_id``.**
-    Poll ``GET /api/jobs/{job_id}`` to obtain the result once processing
-    finishes (``status`` becomes ``done`` or ``error``).
+    **该端点创建一个任务并返回带有 ``job_id`` 的 ``202`` 响应。**
+    处理完成后（``status`` 变为 ``done`` 或 ``error``），可通过轮询
+    ``GET /api/jobs/{job_id}`` 获取结果。
     """
     payload = await create_ingest_job(request, ingest_request)
     return JSONResponse(status_code=202, content=payload)

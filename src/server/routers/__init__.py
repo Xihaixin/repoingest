@@ -1,4 +1,4 @@
-"""This module contains the routers for the FastAPI application."""
+"""该模块包含 FastAPI 应用的路由。"""
 
 from server.routers.download import router as download
 from server.routers.dynamic import router as dynamic

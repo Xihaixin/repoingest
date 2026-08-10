@@ -1,4 +1,4 @@
-"""Reusable form type aliases for FastAPI form parameters."""
+"""用于 FastAPI 表单参数的可复用表单类型别名。"""
 
 from typing import TYPE_CHECKING, Optional
 

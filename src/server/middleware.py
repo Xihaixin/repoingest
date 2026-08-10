@@ -1,13 +1,12 @@
-"""Request logging middleware for request-level tracing.
+"""用于请求级追踪的请求日志中间件。
 
-Every HTTP request is assigned a unique ``request_id`` which is bound into the
-Loguru context for the whole request lifecycle (routing, parsing, cloning,
-ingestion, response).  This lets a single failed request be traced end-to-end
-across all log lines, and the identifier is echoed back to the client in the
-``X-Request-ID`` response header so it can be reported for investigation.
+每个 HTTP 请求都会被分配一个唯一的 ``request_id``，并绑定到 Loguru 上下文
+中，贯穿整个请求生命周期（路由、解析、克隆、摄取、响应）。这样可以在所有
+日志行中端到端地追踪单个失败请求，同时该标识符会通过 ``X-Request-ID``
+响应头回传给客户端，便于上报排查。
 
-High-volume, low-value asset requests (e.g. ``/static/*``) are passed through
-without a request id or access-log entry so they do not clutter the log.
+高流量、低价值的资源请求（例如 ``/static/*``）会直接放行，不生成请求 id
+或访问日志条目，以免污染日志。
 """
 
 from __future__ import annotations
@@ -23,16 +22,16 @@ from gitingest.utils.logger import get_logger
 
 logger = get_logger("server.middleware")
 
-# Requests slower than this (milliseconds) are reported with a WARNING line.
+# 比该时长（毫秒）更慢的请求会以 WARNING 级别的日志行上报。
 _DEFAULT_SLOW_REQUEST_MS = 30_000
 
-# Path prefixes that are high-volume, low-value asset requests: no request id
-# is generated and no access-log line is emitted for them.
+# 高流量、低价值的资源请求路径前缀：不会为它们生成请求 id，
+# 也不会输出访问日志行。
 _QUIET_PREFIXES = ("/static/",)
 
 
 def _slow_request_ms() -> float:
-    """Return the slow-request threshold in ms (env-configurable)."""
+    """返回慢请求阈值（毫秒，可通过环境变量配置）。"""
     raw = os.getenv("REPOINGEST_SLOW_REQUEST_MS", "")
     try:
         return float(raw) if raw else _DEFAULT_SLOW_REQUEST_MS
@@ -41,12 +40,12 @@ def _slow_request_ms() -> float:
 
 
 def _should_trace(path: str) -> bool:
-    """Return whether a request path deserves request-id tracing and access logs."""
+    """返回请求路径是否需要进行请求 id 追踪与访问日志记录。"""
     return not path.startswith(_QUIET_PREFIXES)
 
 
 def _client_ip(request: Request) -> str:
-    """Return the best-effort client IP, honoring ``X-Forwarded-For`` behind a proxy."""
+    """返回尽最大努力获取的客户端 IP，并处理代理背后的 ``X-Forwarded-For``。"""
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
         return forwarded.split(",")[0].strip()
@@ -54,17 +53,16 @@ def _client_ip(request: Request) -> str:
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Assign a ``request_id`` to every request and log its lifecycle.
+    """为每个请求分配 ``request_id`` 并记录其生命周期。
 
-    The request identifier and client metadata are bound into the Loguru
-    context so every log line emitted while handling the request is tagged
-    with them, enabling end-to-end tracing of a single request.
+    请求标识符与客户端元数据会绑定到 Loguru 上下文中，因此处理该请求期间
+    输出的每一行日志都会携带这些信息，从而实现单个请求的端到端追踪。
     """
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        # Static assets: pass through without a request id or access-log entry.
+        # 静态资源：直接放行，不生成请求 id 或访问日志条目。
         if not _should_trace(request.url.path):
             logger.debug("Static asset request: {}", request.url.path)
             return await call_next(request)

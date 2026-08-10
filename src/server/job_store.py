@@ -1,8 +1,8 @@
-"""In-memory job store for asynchronous ingest tasks.
+"""用于异步摄入任务的内存任务存储。
 
-Ingestion runs in the background so the client can navigate away and later
-resume (poll) the job.  Results contain repository content, so jobs are kept
-for a bounded retention window and a bounded count per browser identity.
+摄入在后台运行，因此客户端可以离开页面，之后再恢复（轮询）任务。
+结果包含仓库内容，因此任务会在有界的保留窗口内、并且按浏览器身份
+以有界的数量保留。
 """
 
 from __future__ import annotations
@@ -16,15 +16,15 @@ from gitingest.utils.logger import get_logger
 
 logger = get_logger("job_store")
 
-# Retention window for finished jobs (seconds).
+# 已完成任务的保留窗口（秒）。
 JOB_TTL_SECONDS = 2 * 60 * 60  # 2 hours
 
-# Maximum number of jobs kept per uid (bounds memory).
+# 每个 uid 保留的最大任务数（限制内存占用）。
 MAX_JOBS_PER_UID = 20
 
 
 class JobStore:
-    """Thread-safe in-memory registry of ingest jobs."""
+    """线程安全的摄入任务内存注册表。"""
 
     def __init__(self, ttl_seconds: int = JOB_TTL_SECONDS) -> None:
         self._jobs: dict[str, dict[str, Any]] = {}
@@ -32,7 +32,7 @@ class JobStore:
         self._ttl = ttl_seconds
 
     async def create(self, uid: str, params: dict[str, Any]) -> dict[str, Any]:
-        """Create a ``running`` job and return it."""
+        """创建一个 ``running`` 任务并返回它。"""
         async with self._lock:
             now = time.time()
             job: dict[str, Any] = {
@@ -49,12 +49,12 @@ class JobStore:
             return job
 
     async def get(self, job_id: str) -> Optional[dict[str, Any]]:
-        """Return a job or ``None``."""
+        """返回一个任务或 ``None``。"""
         async with self._lock:
             return self._jobs.get(job_id)
 
     async def update(self, job_id: str, **fields: Any) -> None:
-        """Update a job's fields in place (no-op if the job is unknown)."""
+        """就地更新任务的字段（如果任务未知则为空操作）。"""
         async with self._lock:
             job = self._jobs.get(job_id)
             if job is None:
@@ -63,7 +63,7 @@ class JobStore:
             job["updated_at"] = time.time()
 
     async def list_for_uid(self, uid: str, limit: int = 10) -> list[dict[str, Any]]:
-        """Return recent job summaries (metadata only) for a uid, newest first."""
+        """返回某个 uid 的最近任务摘要（仅元数据），最新在前。"""
         async with self._lock:
             jobs = [
                 self._summary(job) for job in self._jobs.values() if job["uid"] == uid
@@ -72,7 +72,7 @@ class JobStore:
             return jobs[:limit]
 
     async def cleanup(self) -> int:
-        """Remove expired jobs and cap per-uid history. Returns removed count."""
+        """移除过期任务并限制每个 uid 的历史数量。返回被移除的数量。"""
         async with self._lock:
             now = time.time()
             to_remove = [
@@ -81,7 +81,7 @@ class JobStore:
                 if now - job["created_at"] > self._ttl
             ]
 
-            # Keep only the newest MAX_JOBS_PER_UID jobs per uid.
+            # 每个 uid 仅保留最新的 MAX_JOBS_PER_UID 个任务。
             by_uid: dict[str, list[tuple[float, str]]] = {}
             for job_id, job in self._jobs.items():
                 if job_id not in to_remove:
@@ -113,12 +113,12 @@ class JobStore:
 job_store = JobStore()
 
 
-# ── Background task tracking ───────────────────────────────────────
+# ── 后台任务跟踪 ───────────────────────────────────────
 _pending_tasks: set[asyncio.Task] = set()
 
 
 def spawn(coro: Awaitable[None]) -> asyncio.Task:
-    """Schedule ``coro`` on the event loop and track it for shutdown."""
+    """在事件循环上调度 ``coro`` 并跟踪它以便在关闭时处理。"""
     task = asyncio.create_task(coro)
     _pending_tasks.add(task)
     task.add_done_callback(_pending_tasks.discard)
@@ -126,13 +126,13 @@ def spawn(coro: Awaitable[None]) -> asyncio.Task:
 
 
 def cancel_pending() -> None:
-    """Cancel any in-flight background ingest tasks (used on shutdown)."""
+    """取消任何进行中的后台摄入任务（在关闭时使用）。"""
     for task in list(_pending_tasks):
         task.cancel()
 
 
 async def cleanup_loop(interval: float = 300.0) -> None:
-    """Periodically prune expired / excess jobs."""
+    """定期清理过期 / 多余的任务。"""
     while True:
         await asyncio.sleep(interval)
         try:

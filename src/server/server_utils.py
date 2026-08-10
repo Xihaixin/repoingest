@@ -1,4 +1,4 @@
-"""Utility functions for the server."""
+"""服务器的工具函数。"""
 
 import asyncio
 import datetime
@@ -23,30 +23,30 @@ from server.server_config import DELETE_REPO_AFTER
 
 logger = get_logger("server_utils")
 
-# Initialize a rate limiter
+# 初始化速率限制器
 limiter = Limiter(key_func=get_remote_address)
 
 
 async def rate_limit_exception_handler(request: Request, exc: Exception) -> Response:
     """
-    Custom exception handler for rate-limiting errors.
+    用于速率限制错误的自定义异常处理器。
 
-    Parameters
+    参数
     ----------
     request : Request
-        The incoming HTTP request.
+        传入的 HTTP 请求。
     exc : Exception
-        The exception raised, expected to be RateLimitExceeded.
+        引发的异常，预期为 RateLimitExceeded。
 
-    Returns
+    返回
     -------
     Response
-        A response indicating that the rate limit has been exceeded.
+        表示已超过速率限制的响应。
 
-    Raises
+    异常
     ------
     exc
-        If the exception is not a RateLimitExceeded error, it is re-raised.
+        如果异常不是 RateLimitExceeded 错误，则重新抛出。
     """
     if isinstance(exc, RateLimitExceeded):
         logger.warning(
@@ -60,17 +60,17 @@ async def rate_limit_exception_handler(request: Request, exc: Exception) -> Resp
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """
-    Lifecycle manager for handling startup and shutdown events for the FastAPI application.
+    处理 FastAPI 应用程序启动和关闭事件的生命周期管理器。
 
-    Parameters
+    参数
     ----------
     _ : FastAPI
-        The FastAPI application instance (unused).
+        FastAPI 应用程序实例（未使用）。
 
-    Yields
+    产生
     -------
     None
-        Yields control back to the FastAPI application while the background task runs.
+        在后台任务运行期间将控制权交还给 FastAPI 应用程序。
     """
     logger.info("Starting server lifecycle: initializing Git check and cleanup tasks")
     task = asyncio.create_task(_remove_old_repositories())
@@ -89,18 +89,18 @@ async def lifespan(_: FastAPI):
 
 async def _remove_old_repositories():
     """
-    Periodically remove old repository folders.
+    定期移除旧的仓库文件夹。
 
-    Background task that runs periodically to clean up old repository directories.
+    定期运行以清理旧仓库目录的后台任务。
 
-    This task:
-    - Scans the TMP_BASE_PATH directory every 60 seconds
-    - Removes directories older than DELETE_REPO_AFTER seconds
-    - Before deletion, logs repository URLs to history.txt if a matching .txt file exists
-    - Handles errors gracefully if deletion fails
+    该任务：
+    - 每 60 秒扫描 TMP_BASE_PATH 目录
+    - 移除创建时间早于 DELETE_REPO_AFTER 秒的目录
+    - 删除前，如果存在匹配的 .txt 文件，则将仓库 URL 记录到 history.txt
+    - 如果删除失败，则优雅地处理错误
 
-    The repository URL is extracted from the first .txt file in each directory,
-    assuming the filename format: "owner-repository.txt"
+    仓库 URL 从每个目录中的第一个 .txt 文件提取，
+    假定文件名为 "owner-repository.txt" 格式。
     """
     while True:
         try:
@@ -137,14 +137,14 @@ async def _remove_old_repositories():
 
 async def _process_folder(folder: Path) -> None:
     """
-    Process a single folder for deletion and logging.
+    处理单个文件夹的删除与日志记录。
 
-    Parameters
+    参数
     ----------
     folder : Path
-        The path to the folder to be processed.
+        待处理文件夹的路径。
     """
-    # Try to log repository URL before deletion
+    # 在删除前尝试记录仓库 URL
     try:
         txt_files = [f for f in folder.iterdir() if f.suffix == ".txt"]
 
@@ -167,7 +167,7 @@ async def _process_folder(folder: Path) -> None:
     except Exception as exc:
         logger.exception("Error logging repository URL for {}: {}", folder, exc)
 
-    # Delete the folder
+    # 删除文件夹
     try:
         shutil.rmtree(folder)
         logger.info("Deleted old repository folder: {}", folder)
@@ -177,17 +177,17 @@ async def _process_folder(folder: Path) -> None:
 
 def log_slider_to_size(position: int) -> int:
     """
-    Convert a slider position to a file size in bytes using a logarithmic scale.
+    使用对数刻度将滑块位置转换为以字节为单位的文件大小。
 
-    Parameters
+    参数
     ----------
     position : int
-        Slider position ranging from 0 to 500.
+        范围从 0 到 500 的滑块位置。
 
-    Returns
+    返回
     -------
     int
-        File size in bytes corresponding to the slider position.
+        与滑块位置对应的以字节为单位的文件大小。
     """
     maxp = 500
     minv = math.log(1)
