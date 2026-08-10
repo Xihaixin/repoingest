@@ -16,41 +16,41 @@ KNOW_GIT_HOSTS: List[str] = [
 
 def _is_valid_pattern(pattern: str) -> bool:
     """
-    Validate if the given pattern contains only valid characters.
+    校验给定的模式字符串是否只包含合法字符。
 
-    This function checks if the pattern contains only alphanumeric characters or one
-    of the following allowed characters: dash (`-`), underscore (`_`), dot (`.`),
-    forward slash (`/`), plus (`+`), asterisk (`*`), or the at sign (`@`).
+    此函数检查模式字符串是否仅由字母数字字符或下列允许的字符组成：
+    短横线（`-`）、下划线（`_`）、点（`.`）、正斜杠（`/`）、加号（`+`）、
+    星号（`*`）或 at 符号（`@`）。
 
-    Parameters
+    参数
     ----------
     pattern : str
-        The pattern to validate.
+        要校验的模式字符串。
 
-    Returns
+    返回
     -------
     bool
-        True if the pattern is valid, otherwise False.
+        如果模式有效则返回 True，否则返回 False。
     """
     return all(c.isalnum() or c in "-_./+*@" for c in pattern)
 
 
 def _normalize_pattern(pattern:str) -> str:
     """
-        Normalize the given pattern by removing leading separators and appending a wildcard.
+    通过去除前导分隔符并追加通配符来规范化给定的模式字符串。
 
-    This function processes the pattern string by stripping leading directory separators
-    and appending a wildcard (`*`) if the pattern ends with a separator.
+    此函数会去掉模式字符串开头的目录分隔符，如果模式以分隔符结尾，
+    则追加一个通配符（`*`）。
 
-    Parameters
+    参数
     ----------
     pattern : str
-        The pattern to normalize.
+        要规范化的模式字符串。
 
-    Returns
+    返回
     -------
     str
-        The normalized pattern.
+        规范化后的模式字符串。
     """
     pattern = pattern.lstrip(os.sep)
     if pattern.endswith(os.sep):
@@ -59,17 +59,17 @@ def _normalize_pattern(pattern:str) -> str:
 
 def _validate_url_scheme(scheme: str) -> None:
     """
-    Validate the given scheme against the known schemes.
+    校验给定的 scheme 是否属于已知的 scheme。
 
-    Parameters
+    参数
     ----------
     scheme: str
-        The scheme to validate.
+        要校验的 scheme。
 
-    Raises
+    异常
     ------
     ValueError
-        If the scheme is not "https" or "http".
+        如果 scheme 不是 "https" 或 "http"。
     """
 
     if scheme not in ("https", "http"):
@@ -77,16 +77,16 @@ def _validate_url_scheme(scheme: str) -> None:
 
 def _validate_host(host: str) -> None:
     """
-    Validate the given host against the known Git hosts.
+    校验给定的主机名是否属于已知的 Git 托管平台。
 
-    Parameters
+    参数
     ----------
     host: str
-        the host to validate.
+        要校验的主机名。
 
-    Raises
+    异常
     ------
-        If the host is not a known Git host.
+        如果主机名不是已知的 Git 托管平台。
     """
     if host not in KNOW_GIT_HOSTS:
         raise ValueError(f"Unknown domain '{host}' in URL")
@@ -94,22 +94,22 @@ def _validate_host(host: str) -> None:
 
 def _get_user_and_repo_from_path(path: str) -> Tuple[str, str]:
     """
-    Extract the user and repository names from a given path.
+    从给定的路径中提取用户名和仓库名。
 
-    Parameters
+    参数
     ----------
     path : str
-        The path to extract the user and repository names from.
+        用于提取用户名和仓库名的路径。
 
-    Returns
+    返回
     -------
     Tuple[str, str]
-        A tuple containing the user and repository names.
+        包含用户名和仓库名的元组。
 
-    Raises
+    异常
     ------
     ValueError
-        If the path does not contain at least two parts.
+        如果路径不包含至少两部分。
     """
     path_parts = path.lower().strip("/").split("/")
     if len(path_parts) < 2:
@@ -118,20 +118,20 @@ def _get_user_and_repo_from_path(path: str) -> Tuple[str, str]:
 
 def _is_valid_git_commit_hash(commit: str) -> bool:
     """
-    Validate if the provided string is a valid Git commit hash.
+    校验给定的字符串是否为合法的 Git 提交哈希值。
 
-    This function checks if the commit hash is a 40-character string consisting only
-    of hexadecimal digits, which is the standard format for Git commit hashes.
+    此函数检查提交哈希是否为仅由十六进制数字组成的 40 位字符串，
+    这是 Git 提交哈希的标准格式。
 
-    Parameters
+    参数
     ----------
     commit : str
-        The string to validate as a Git commit hash.
+        要作为 Git 提交哈希校验的字符串。
 
-    Returns
+    返回
     -------
     bool
-        True if the string is a valid 40-character Git commit hash, otherwise False.
+        如果字符串是合法的 40 位 Git 提交哈希则返回 True，否则返回 False。
     """
     return len(commit) == 40 and all(c in HEX_DIGITS for c in commit)
 

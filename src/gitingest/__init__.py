@@ -1,4 +1,4 @@
-"""Gitingest: A package for ingesting data from Git repositories."""
+"""Gitingest：一个用于从 Git 仓库中摄取数据的包。"""
 
 from gitingest.entrypoint import ingest, ingest_async
 from gitingest.ingestion import ingest_query

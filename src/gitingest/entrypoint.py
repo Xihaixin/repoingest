@@ -17,40 +17,39 @@ async def ingest_async(
     output: Optional[str] = None,
 ) -> Tuple[str,str,str]:
     '''
-    Main entry point for ingesting a source and processing its contents.
+    摄取来源并处理其内容的主入口函数。
 
-    This function analyzes a source (URL or local path), clones the corresponding repository (if applicable),
-    and processes its files according to the specified query parameters. It returns a summary, a tree-like
-    structure of the files, and the content of the files. The results can optionally be written to an output file.
+    该函数分析来源（URL 或本地路径），克隆对应的仓库（如果适用），并根据指定的查询参数处理其文件。
+    它返回一个摘要、文件的树状结构以及文件内容。结果可以按需写入输出文件。
 
-    Parameters
+    参数
     ----------
     source : str
-        The source to analyze, which can be a URL (for a Git repository) or a local directory path.
+        要分析的来源，可以是 URL（针对 Git 仓库）或本地目录路径。
     max_file_size : int
-        Maximum allowed file size for file ingestion. Files larger than this size are ignored, by default
-        10*1024*1024 (10 MB).
+        文件摄取允许的最大文件大小。大于此大小的文件将被忽略，默认值为
+        10*1024*1024（10 MB）。
     include_patterns : Union[str, Set[str]], optional
-        Pattern or set of patterns specifying which files to include. If `None`, all files are included.
+        指定包含哪些文件的单个模式或模式集合。如果为 `None`，则包含所有文件。
     exclude_patterns : Union[str, Set[str]], optional
-        Pattern or set of patterns specifying which files to exclude. If `None`, no files are excluded.
+        指定排除哪些文件的单个模式或模式集合。如果为 `None`，则不排除任何文件。
     branch : str, optional
-        The branch to clone and ingest. If `None`, the default branch is used.
+        要克隆和摄取的分支。如果为 `None`，则使用默认分支。
     output : str, optional
-        File path where the summary and content should be written. If `None`, the results are not written to a file.
+        摘要和内容要写入的文件路径。如果为 `None`，则结果不会写入文件。
 
-    Returns
+    返回
     -------
     Tuple[str, str, str]
-        A tuple containing:
-        - A summary string of the analyzed repository or directory.
-        - A tree-like string representation of the file structure.
-        - The content of the files in the repository or directory.
+        一个包含以下内容的元组：
+        - 所分析仓库或目录的摘要字符串。
+        - 文件结构的树状字符串表示。
+        - 仓库或目录中文件的内容。
 
-    Raises
+    异常
     ------
     TypeError
-        If `clone_repo` does not return a coroutine, or if the `source` is of an unsupported type.    
+        如果 `clone_repo` 未返回协程，或 `source` 为不支持的类型。    
 
     '''
     repo_cloned = False
@@ -103,39 +102,38 @@ def  ingest(
     output: Optional[str] = None,
 ) -> Tuple[str,str,str]:
     """
-    Synchronous version of ingest_async.
+    ingest_async 的同步版本。
 
-    This function analyzes a source (URL or local path), clones the corresponding repository (if applicable),
-    and processes its files according to the specified query parameters. It returns a summary, a tree-like
-    structure of the files, and the content of the files. The results can optionally be written to an output file.
+    该函数分析来源（URL 或本地路径），克隆对应的仓库（如果适用），并根据指定的查询参数处理其文件。
+    它返回一个摘要、文件的树状结构以及文件内容。结果可以按需写入输出文件。
 
-    Parameters
+    参数
     ----------
     source : str
-        The source to analyze, which can be a URL (for a Git repository) or a local directory path.
+        要分析的来源，可以是 URL（针对 Git 仓库）或本地目录路径。
     max_file_size : int
-        Maximum allowed file size for file ingestion. Files larger than this size are ignored, by default
-        10*1024*1024 (10 MB).
+        文件摄取允许的最大文件大小。大于此大小的文件将被忽略，默认值为
+        10*1024*1024（10 MB）。
     include_patterns : Union[str, Set[str]], optional
-        Pattern or set of patterns specifying which files to include. If `None`, all files are included.
+        指定包含哪些文件的单个模式或模式集合。如果为 `None`，则包含所有文件。
     exclude_patterns : Union[str, Set[str]], optional
-        Pattern or set of patterns specifying which files to exclude. If `None`, no files are excluded.
+        指定排除哪些文件的单个模式或模式集合。如果为 `None`，则不排除任何文件。
     branch : str, optional
-        The branch to clone and ingest. If `None`, the default branch is used.
+        要克隆和摄取的分支。如果为 `None`，则使用默认分支。
     output : str, optional
-        File path where the summary and content should be written. If `None`, the results are not written to a file.
+        摘要和内容要写入的文件路径。如果为 `None`，则结果不会写入文件。
 
-    Returns
+    返回
     -------
     Tuple[str, str, str]
-        A tuple containing:
-        - A summary string of the analyzed repository or directory.
-        - A tree-like string representation of the file structure.
-        - The content of the files in the repository or directory.
+        一个包含以下内容的元组：
+        - 所分析仓库或目录的摘要字符串。
+        - 文件结构的树状字符串表示。
+        - 仓库或目录中文件的内容。
 
-    See Also
+    另请参阅
     --------
-    ingest_async : The asynchronous version of this function.
+    ingest_async : 该函数的异步版本。
     """
     return asyncio.run(
         ingest_async(

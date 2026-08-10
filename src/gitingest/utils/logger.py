@@ -1,15 +1,15 @@
-"""Centralized logging configuration for the application.
+"""应用的中枢日志配置。
 
-This module provides a unified logging setup built on top of Loguru.  It
-replaces the previous stdlib ``logging`` based configuration and adds:
+本模块基于 Loguru 提供统一的日志配置。它取代了之前基于标准库
+``logging`` 的配置，并增加了以下功能：
 
-* Full timestamps (``YYYY-MM-DD HH:mm:ss.SSS``) on every line, console included.
-* Daily rotating file logs with retention and compression.
-* Context binding helpers (``request_id``, ``client_ip``, ...) for request tracing.
-* A bridge that routes standard library ``logging`` records (uvicorn,
-  aiohttp, gitpython, ...) through the same Loguru pipeline.
+* 每一行都包含完整的时间戳（``YYYY-MM-DD HH:mm:ss.SSS``），控制台输出同样如此。
+* 每日轮转的文件日志，支持保留策略与压缩。
+* 上下文绑定辅助函数（``request_id``、``client_ip`` 等），用于请求追踪。
+* 一个桥接器，将标准库 ``logging`` 的日志记录（uvicorn、aiohttp、
+  gitpython 等）路由到相同的 Loguru 管道。
 
-Usage
+用法
 -----
     from gitingest.utils.logger import get_logger
 
@@ -28,14 +28,14 @@ from typing import Optional
 
 from loguru import logger as _base_logger
 
-# ── Environment defaults ──
+# ── 环境变量默认值 ──
 _DEFAULT_LOG_LEVEL = "INFO"
 _DEFAULT_ROTATION = "00:00"
 _DEFAULT_RETENTION = "14 days"
 _DEFAULT_COMPRESSION = "gz"
 
-# Optional extra fields rendered in the human-readable output when present
-# (bound via ``logger.contextualize(...)`` by the request middleware).
+# 可选的附加字段，存在时渲染到人类可读的日志输出中
+# （由请求中间件通过 ``logger.contextualize(...)`` 绑定）。
 _CONTEXT_LABELS = (
     ("request_id", "rid"),
     ("client_ip", "ip"),
@@ -45,12 +45,11 @@ _CONTEXT_LABELS = (
 
 
 def _make_formatter(colorize: bool):
-    """Build a Loguru formatter callable for the human-readable text output.
+    """为人类可读的文本输出构建一个 Loguru 格式化回调。
 
-    The timestamp always includes the full date (``YYYY-MM-DD HH:mm:ss.SSS``).
-    Request context fields are only rendered when bound (e.g. inside a request
-    handled by the request logging middleware), keeping background/CLI logs
-    clean.
+    时间戳始终包含完整日期（``YYYY-MM-DD HH:mm:ss.SSS``）。
+    请求上下文字段仅在绑定时才渲染（例如在处理请求的日志中间件内部），
+    从而保持后台/CLI 日志的整洁。
     """
 
     def _format(record: dict) -> str:
@@ -73,7 +72,7 @@ def _make_formatter(colorize: bool):
         else:
             parts.append("{message}")
 
-        # Loguru renders the traceback only when `{exception}` is present.
+        # 只有当存在 `{exception}` 时，Loguru 才会渲染 traceback。
         if record["exception"] is not None:
             parts.append("{exception}")
 
@@ -83,17 +82,16 @@ def _make_formatter(colorize: bool):
 
 
 def _env(name: str, default: str) -> str:
-    """Read an environment variable, returning ``default`` when unset/empty."""
+    """读取环境变量，当未设置或为空时返回 ``default``。"""
     value = os.getenv(name)
     return value if value else default
 
 
 class _InterceptHandler(logging.Handler):
-    """Route stdlib ``logging`` records into the Loguru pipeline.
+    """将标准库 ``logging`` 的日志记录路由到 Loguru 管道。
 
-    Attach this handler to the root stdlib logger so that third party
-    libraries (uvicorn, aiohttp, gitpython, ...) share the same console/file
-    sinks, format and rotation as the application logs.
+    将该处理器附加到标准库根 logger 上，使第三方库（uvicorn、aiohttp、
+    gitpython 等）与应用日志共享相同的控制台/文件输出端、格式和轮转策略。
     """
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -115,18 +113,17 @@ class _InterceptHandler(logging.Handler):
 
 
 def _setup_stdlib_bridge() -> None:
-    """Redirect the stdlib ``logging`` root logger into Loguru.
+    """将标准库 ``logging`` 根 logger 重定向到 Loguru。
 
-    The uvicorn access logger is disabled because the request logging
-    middleware already records every request with richer context (request id,
-    client ip, duration).
+    uvicorn 的访问日志（access logger）被禁用，因为请求日志中间件已经
+    以更丰富的上下文（请求 id、客户端 ip、耗时）记录了每个请求。
     """
     handler = _InterceptHandler()
     logging.basicConfig(handlers=[handler], level=0, force=True)
     logging.getLogger("uvicorn.access").disabled = True
 
 
-# ── Module-level sentinel to ensure setup runs only once ──
+# ── 模块级哨兵变量，确保配置只执行一次 ──
 _initialized: bool = False
 
 
@@ -135,24 +132,22 @@ def setup_logging(
     log_level: Optional[str] = None,
     log_file: Optional[str] = None,
 ) -> None:
-    """Configure the Loguru logger: colorized console + rotating file sinks.
+    """配置 Loguru 日志器：彩色控制台输出 + 轮转文件输出端。
 
-    Call this **once** at application startup.  Subsequent calls are no-ops
-    (the existing sinks are kept) and never duplicate handlers.
+    在应用启动时调用一次。后续调用不产生任何效果（保留已有的输出端），
+    且永远不会重复添加处理器。
 
-    Parameters
+    参数
     ----------
     name : str
-        Root logger namespace.  Kept for API compatibility; every logger
-        returned by :func:`get_logger` is namespaced under it.
+        根 logger 命名空间。为保持 API 兼容而保留；通过
+        :func:`get_logger` 返回的每个 logger 都以它作为命名空间前缀。
     log_level : str, optional
-        One of ``DEBUG``, ``INFO``, ``WARNING``, ``ERROR``, ``CRITICAL``.
-        Falls back to the ``REPOINGEST_LOG_LEVEL`` environment variable,
-        then to ``INFO``.
+        取值为 ``DEBUG``、``INFO``、``WARNING``、``ERROR``、``CRITICAL`` 之一。
+        回退到 ``REPOINGEST_LOG_LEVEL`` 环境变量，最终回退到 ``INFO``。
     log_file : str, optional
-        Path to the log file.  Falls back to the ``REPOINGEST_LOG_FILE``
-        environment variable.  When set, logs are written both to the console
-        and to a rotating file.
+        日志文件路径。回退到 ``REPOINGEST_LOG_FILE`` 环境变量。
+        设置后，日志会同时写入控制台和轮转文件。
     """
     global _initialized  # noqa: PLW0603
 
@@ -161,10 +156,10 @@ def setup_logging(
 
     level = (log_level or _env("REPOINGEST_LOG_LEVEL", _DEFAULT_LOG_LEVEL)).upper()
 
-    # Remove Loguru's default handler to avoid duplicate console output
+    # 移除 Loguru 的默认处理器，避免控制台输出重复
     _base_logger.remove()
 
-    # ── Console sink (colorized when attached to a real terminal) ──
+    # ── 控制台输出端（连接到真实终端时启用彩色输出） ──
     if _env("REPOINGEST_LOG_TO_STDOUT", "1") == "1":
         _base_logger.add(
             sys.stderr,
@@ -175,7 +170,7 @@ def setup_logging(
             diagnose=False,
         )
 
-    # ── Rotating file sink ──
+    # ── 轮转文件输出端 ──
     file_path = log_file or _env("REPOINGEST_LOG_FILE", "")
     if file_path:
         serialize = _env("REPOINGEST_LOG_JSON", "0") == "1"
@@ -199,16 +194,16 @@ def setup_logging(
 
 
 def get_logger(child_name: str):
-    """Return a Loguru logger bound to the ``repoingest.<child_name>`` namespace.
+    """返回绑定到 ``repoingest.<child_name>`` 命名空间的 Loguru 日志器。
 
-    Parameters
+    参数
     ----------
     child_name : str
-        Sub-namespace for the logger (e.g. ``"server"``, ``"cloning"``).
+        日志器的子命名空间（例如 ``"server"``、``"cloning"``）。
 
-    Returns
+    返回
     -------
     loguru.Logger
-        A Loguru logger whose records are tagged with the given module.
+        日志记录会带有指定模块标签的 Loguru 日志器。
     """
     return _base_logger.bind(module=f"repoingest.{child_name}")

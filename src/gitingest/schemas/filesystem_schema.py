@@ -1,4 +1,4 @@
-"""Define the schema for the filesystem representation."""
+"""定义文件系统表示的架构（schema）。"""
 from __future__ import annotations
 
 import os
@@ -11,14 +11,14 @@ from gitingest.utils.file_utils import get_preferred_encodings, is_text_file
 from gitingest.utils.notebook_utils import process_notebook
 
 class FileSystemNodeType(Enum):
-    """Enum representing the type of a file system node (directory or file)."""
+    """表示文件系统节点类型（目录或文件）的枚举。"""
     DIRECTORY = auto()
     FILE = auto()
     SYMLINK = auto()
 
 @dataclass
 class FileSystemStats:
-    """Class for tracking statistics during file system traversal."""
+    """用于在文件系统遍历期间跟踪统计信息的类。"""
 
     visited: set[Path] = field(default_factory=set)
     total_files: int = 0
@@ -28,9 +28,9 @@ class FileSystemStats:
 @dataclass
 class FileSystemNode:
     """
-    Class representing a node in the file system (either a file or directory).
+    表示文件系统中的一个节点（文件或目录）的类。
 
-    Tracks properties of files/directories for comprehensive analysis.
+    跟踪文件/目录的属性，以便进行全面分析。
     """
 
     name: str
@@ -45,26 +45,26 @@ class FileSystemNode:
 
     def sort_children(self) -> None:
         """
-        Sort the children nodes of a directory according to a specific order.
+        按特定顺序对目录的子节点进行排序。
 
-        Order of sorting:
-          1. Regular files (not starting with dot)
-          2. Hidden files (starting with dot)
-          3. Regular directories (not starting with dot)
-          4. Hidden directories (starting with dot)
+        排序顺序：
+          1. 普通文件（不以点开头）
+          2. 隐藏文件（以点开头）
+          3. 普通目录（不以点开头）
+          4. 隐藏目录（以点开头）
 
-        All groups are sorted alphanumerically within themselves.
+        每个分组内部均按字母数字顺序排序。
 
-        Raises
+        异常
         ------
         ValueError
-            If the node is not a directory.
+            如果该节点不是目录。
         """
         if self.type != FileSystemNodeType.DIRECTORY:
             raise ValueError("Cannot sort children of a non-directory node")
         
         def _sort_key(child: FileSystemNode) -> tuple[int, str]:
-            # return the priority
+            # 返回优先级
             name = child.name.lower()
             if child.type ==FileSystemNodeType.FILE:
                 if name == "readme.md":
@@ -77,12 +77,12 @@ class FileSystemNode:
     @property
     def content_string(self) -> str:
         """
-        Return the content of the node as a string, including path and content.
+        以字符串形式返回节点的内容，包括路径和内容。
 
-        Returns
+        返回
         -------
         str
-            A string representation of the node's content.
+            节点内容的字符串表示。
         """
         parts = [
             SEPARATOR,
@@ -96,17 +96,17 @@ class FileSystemNode:
     @property
     def content(self) -> str:
         """
-        Read the content of a file if it's text (or a notebook). Return an error message otherwise.
+        如果文件是文本（或 notebook），则读取其内容；否则返回错误消息。
 
-        Returns
+        返回
         -------
         str
-            The content of the file, or an error message if the file could not be read.
+            文件的内容；如果无法读取文件，则返回错误消息。
         
-        Raises
+        异常
         ------
         ValueError
-            If the node is a directory.
+            如果该节点是目录。
         """
         if self.type == FileSystemNodeType.DIRECTORY:
             raise ValueError("Cannot read content of a directory node")

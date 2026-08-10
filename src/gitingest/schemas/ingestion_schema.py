@@ -1,4 +1,4 @@
-"""This module contains the dataclasses for the ingestion process. """
+"""本模块包含摄取（ingestion）流程的 dataclass。 """
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Set
@@ -10,23 +10,23 @@ from gitingest.config import MAX_FILE_SIZE
 @dataclass
 class CloneConfig:
     """
-    Configuration for cloning a Git repository.
+    克隆 Git 仓库的配置。
 
-    This class holds the necessary parameters for cloning a repository to a local path, including
-    the repository's URL, the target local path, and optional parameters for a specific commit or branch.
+    此类保存将仓库克隆到本地路径所需的参数，包括仓库的 URL、目标本地路径，
+    以及指定 commit 或 branch 的可选参数。
 
-    Attributes
+    属性
     ----------
     url : str
-        The URL of the Git repository to clone.
+        要克隆的 Git 仓库的 URL。
     local_path : str
-        The local directory where the repository will be cloned.
+        仓库将被克隆到的本地目录。
     commit : str, optional
-        The specific commit hash to check out after cloning (default is None).
+        克隆后要检出的特定 commit 哈希（默认值为 None）。
     branch : str, optional
-        The branch to clone (default is None).
+        要克隆的分支（默认值为 None）。
     subpath : str
-        The subpath to clone from the repository (default is "/").
+        要从仓库克隆的子路径（默认值为 "/"）。
     """
 
     url: str
@@ -38,7 +38,7 @@ class CloneConfig:
 
 class IngestionQuery(BaseModel):    # pylint: disable=too-many-instance-attributes
     """
-    Pydantic model to store the parsed details of the repository or file path.
+    用于存储仓库或文件路径解析后详细信息的 Pydantic 模型。
     """
     user_name: Optional[str] = None
     repo_name: Optional[str] =None
@@ -58,17 +58,17 @@ class IngestionQuery(BaseModel):    # pylint: disable=too-many-instance-attribut
 
     def extract_clone_config(self) -> CloneConfig:
         """
-        Extract the relevant fields for the CloneConfig object.
+        提取 CloneConfig 对象所需的相应字段。
 
-        Returns
+        返回
         -------
         CloneConfig
-            A ColoneConfig object containing the relevant fields.
+            一个包含相应字段的 CloneConfig 对象。
         
-        Raises
+        异常
         ------
         ValueError
-            If the 'url' parameter is not provided.
+            如果未提供 'url' 参数。
         """
         if not self.url:
             raise ValueError("The 'url' is required.")

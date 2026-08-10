@@ -1,4 +1,4 @@
-"""Utility functions for the ingestion process."""
+"""摄取（ingestion）流程的实用函数。"""
 
 from fnmatch import fnmatch
 from pathlib import Path
@@ -6,25 +6,24 @@ from typing import Set
 
 def _should_exclude(path: Path, base_path: Path,ignore_patterns: Set[str]) -> bool:
     """
-    Determine if the given file or directory path matches any of the ignore patterns.
+    判断给定的文件或目录路径是否与任何忽略模式匹配。
 
-    This function checks whether the relative path of a file or directory matches
-    any of the specified ignore patterns. If a match if found, it returns `True`, indiacting
-    that the file or directory should be excluded from further processing.
+    此函数检查文件或目录的相对路径是否与任何指定的忽略模式匹配。如果匹配，
+    则返回 `True`，表示应从后续处理中排除该文件或目录。
 
-    Parameters
+    参数
     ----------
     path : Path
-        The absolute path of the file or directory to check.
+        要检查的文件或目录的绝对路径。
     base_path : Path
-        The base directory from which the relative path is calculated.
+        计算相对路径所依据的基目录。
     ignore_patterns : Set[str]
-        A set of patterns to check against the relative path.
+        用于与相对路径进行匹配的模式集合。
 
-    Returns
+    返回
     -------
     bool
-        `True` if the path matches any of the ignore patterns, `False` otherwise.
+        如果路径与任一忽略模式匹配则返回 `True`，否则返回 `False`。
     """
     try:
         rel_path = path.relative_to(base_path)
@@ -39,24 +38,24 @@ def _should_exclude(path: Path, base_path: Path,ignore_patterns: Set[str]) -> bo
 
 def _should_include(path: Path, base_path: Path, include_patterns: Set[str]) ->bool:
     """
-    Determine if the given file or directory path matches any of the include patterns.
+    判断给定的文件或目录路径是否与任何包含模式匹配。
 
-    This function checks whether the relative path of a file or directory matches any of the specified patterns. If a
-    match is found, it returns `True`, indicating that the file or directory should be included in the further processing.
+    此函数检查文件或目录的相对路径是否与任何指定模式匹配。如果找到匹配，
+    则返回 `True`，表示该文件或目录应包含在后续处理中。
 
-    Parameters
+    参数
     ----------
     path : Path
-        The absolute path of the file or directory to check.
+        要检查的文件或目录的绝对路径。
     base_path : Path
-        The base directory from which the relative path is calculated.
+        计算相对路径所依据的基目录。
     include_patterns : Set[str]
-        A set of patterns to check against the relative path.
+        用于与相对路径进行匹配的模式集合。
 
-    Returns
+    返回
     -------
     bool
-        `True` if the path matches any of the include patterns, `False` otherwise.
+        如果路径与任一包含模式匹配则返回 `True`，否则返回 `False`。
     """
     try:
         rel_path = path.relative_to(base_path)

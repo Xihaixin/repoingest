@@ -21,7 +21,7 @@ load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env", override=True)
 
 
 def get_temp_base_path() -> Path:
-    """Get the base temporary directory path for cloned repositories."""
+    """获取克隆仓库的基础临时目录路径。"""
     if platform.system() == "Windows":
         custom_tmp_path = os.getenv("GITINGEST_TMP_PATH")
         if not custom_tmp_path:
@@ -35,10 +35,10 @@ def get_temp_base_path() -> Path:
     else:
         tmp_base = Path(tempfile.gettempdir()) / "gitingest"
 
-    # Make sure the tmp directory exist
+    # 确保临时目录存在
     tmp_base.mkdir(parents=True, exist_ok=True)
 
-    # Set permission for different platform
+    # 针对不同平台设置权限
     if platform.system() == "Windows":
         os.chmod(tmp_base, 0o777)
     else:
