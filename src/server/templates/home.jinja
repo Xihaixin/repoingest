@@ -1,0 +1,92 @@
+{% extends "base.jinja" %}
+{% block content %}
+    {# ── Hero ─────────────────────────────────────────────────────── #}
+    <section class="mb-12">
+        <div class="relative w-full flex sm:flex-row flex-col justify-center sm:items-center">
+            <h1 class="landing-page-title">
+                {{ t('home.hero.title1') }}
+                <br>
+                {{ t('home.hero.title2') }}
+            </h1>
+            <img src="/static/svg/sparkle-red.svg" class="sparkle-red no-drag">
+            <img src="/static/svg/sparkle-green.svg" class="sparkle-green no-drag">
+        </div>
+        <p class="intro-text mt-8">{{ t('home.hero.tagline1') }}</p>
+        <p class="intro-text mt-0">{{ t('home.hero.tagline2') }}</p>
+        <div class="flex flex-col items-center mt-10">
+            <div class="relative inline-block group">
+                <div class="w-full h-full absolute inset-0 bg-gray-900 rounded-xl translate-y-2 translate-x-2"></div>
+                <a href="/app"
+                   class="inline-flex items-center px-8 py-4 bg-[#ffc480] border-[3px] border-gray-900 text-gray-900 text-lg font-bold rounded-xl group-hover:-translate-y-px group-hover:-translate-x-px transition-transform relative z-10">
+                    {{ t('home.cta') }}
+                </a>
+            </div>
+            <p class="text-sm text-gray-500 mt-3">{{ t('home.cta.sub') }}</p>
+        </div>
+    </section>
+
+    {# ── How it works ─────────────────────────────────────────────── #}
+    <section class="mb-12">
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-center mb-8">{{ t('home.how.title') }}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for i in [1, 2, 3] %}
+                <div class="relative">
+                    <div class="w-full h-full absolute inset-0 bg-gray-900 rounded-xl translate-y-2 translate-x-2"></div>
+                    <div class="h-full rounded-xl relative z-10 p-6 border-[3px] border-gray-900 bg-[#fff4da]">
+                        <span class="badge-new -rotate-6 text-base font-bold px-2 py-0.5">{{ i }}</span>
+                        <h3 class="text-lg font-bold text-gray-900 mt-3">{{ t('home.how.step%d.title' | format(i)) }}</h3>
+                        <p class="text-gray-600 text-sm mt-2">{{ t('home.how.step%d.desc' | format(i)) }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ── Features ─────────────────────────────────────────────────── #}
+    <section class="mb-12">
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-center mb-8">{{ t('home.features.title') }}</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% for key in ['text', 'token', 'filter', 'private', 'download'] %}
+                <div class="flex items-center gap-3 border-[3px] border-gray-900 rounded-lg bg-white px-4 py-3">
+                    <span class="w-3 h-3 bg-[#FE4A60] rounded-sm flex-shrink-0"></span>
+                    <span class="text-gray-900 font-medium">{{ t('home.features.' + key) }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ── Quick start ──────────────────────────────────────────────── #}
+    <section class="mb-12">
+        <div class="relative">
+            <div class="w-full h-full absolute inset-0 bg-gray-900 rounded-xl translate-y-2 translate-x-2"></div>
+            <div class="rounded-xl relative z-10 p-8 sm:p-10 border-[3px] border-gray-900 bg-[#fff4da]">
+                <h2 class="text-2xl font-bold tracking-tight mb-4">{{ t('home.usage.title') }}</h2>
+                <ol class="list-decimal list-inside space-y-2 text-gray-800">
+                    <li>{{ t('home.usage.p1') }}</li>
+                    <li>{{ t('home.usage.p2') }}</li>
+                </ol>
+                <p class="opacity-70 mb-2 mt-6">{{ t('home.usage.try') }}</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for example in examples %}
+                        <a href="/app?repo={{ example.url }}"
+                           class="px-4 py-1 bg-[#EBDBB7] hover:bg-[#FFC480] text-gray-900 rounded transition-colors duration-200 border-[3px] border-gray-900 hover:-translate-y-px hover:-translate-x-px">
+                            {{ example.name }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# ── Final CTA ────────────────────────────────────────────────── #}
+    <section class="text-center">
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{{ t('home.cta2.title') }}</h2>
+        <div class="relative inline-block group">
+            <div class="w-full h-full absolute inset-0 bg-gray-900 rounded-xl translate-y-2 translate-x-2"></div>
+            <a href="/app"
+               class="inline-flex items-center px-8 py-4 bg-[#ffc480] border-[3px] border-gray-900 text-gray-900 text-lg font-bold rounded-xl group-hover:-translate-y-px group-hover:-translate-x-px transition-transform relative z-10">
+                {{ t('home.cta2.button') }}
+            </a>
+        </div>
+    </section>
+{% endblock %}

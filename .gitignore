@@ -1,5 +1,5 @@
 .env
-gitingest.log
+src/logs
 
 # config
 .vscode/

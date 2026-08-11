@@ -83,7 +83,7 @@ function copyText(className) {
             const originalContent = button.innerHTML;
 
             // Change button content
-            button.innerHTML = 'Copied!';
+            button.innerHTML = I18N.t('js.copied');
 
             // Reset after 1 second
             setTimeout(() => {
@@ -94,7 +94,7 @@ function copyText(className) {
             console.error('Failed to copy text:', err);
             const originalContent = button.innerHTML;
 
-            button.innerHTML = 'Failed to copy';
+            button.innerHTML = I18N.t('js.failedcopy');
             setTimeout(() => {
                 button.innerHTML = originalContent;
             }, 1000);
@@ -121,6 +121,236 @@ function showError(msg) {
     errorDiv.style.display = 'block';
 }
 
+// Best-effort translation of known backend error messages (kept English
+// server-side). Falls back to the original text.
+function translateError(text) {
+    const t = I18N.t.bind(I18N);
+    const rules = [
+        [/repository not found/i, t('errors.repo_not_found')],
+        [/invalid github token/i, t('errors.invalid_token')]
+    ];
+
+    for (const [pattern, replacement] of rules) {
+        if (pattern.test(text)) {
+            return text.replace(pattern, replacement);
+        }
+    }
+
+    return text;
+}
+
+// ── Cookie helpers & browser identity (uid) ────────────────────────
+function getCookie(name) {
+    const escaped = name.replace(/([.*+?^=!:${}()|[\]/\\])/g, '\\$1');
+    const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
+
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+function setCookie(name, value, days) {
+    const date = new Date();
+
+    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${date.toUTCString()}; SameSite=Lax`;
+}
+
+function ensureUid() {
+    let uid = getCookie('repoingest_uid');
+
+    if (!uid) {
+        uid = (window.crypto && window.crypto.randomUUID)
+            ? crypto.randomUUID()
+            : ('uid-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2));
+        setCookie('repoingest_uid', uid, 365);
+    }
+
+    return uid;
+}
+
+// ── Job polling / resume ───────────────────────────────────────────
+function stopPoll(jobId) {
+    const timers = window.pollTimers;
+
+    if (timers && timers[jobId]) {
+        clearInterval(timers[jobId]);
+        delete timers[jobId];
+    }
+}
+
+function pollJob(jobId) {
+    const timers = window.pollTimers || (window.pollTimers = {});
+    const submitButton = document.querySelector('#ingestForm button[type="submit"]');
+
+    const poll = () => {
+        fetch('/api/jobs/' + jobId)
+            .then(async (response) => {
+                let data;
+
+                try {
+                    data = await response.json();
+                } catch {
+                    data = {};
+                }
+
+                if (!response.ok) {
+                    // Job expired / server restarted
+                    stopPoll(jobId);
+                    setButtonLoadingState(submitButton, false);
+                    showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${I18N.t('js.job.gone')}</div>`);
+                    loadRecentJobs(false);
+
+                    return;
+                }
+
+                if (data.status === 'running') {
+                    return; // keep polling
+                }
+
+                stopPoll(jobId);
+                setButtonLoadingState(submitButton, false);
+
+                if (data.status === 'error') {
+                    showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${translateError(data.error || I18N.t('js.error'))}</div>`);
+                } else if (data.result) {
+                    handleSuccessfulResponse(data.result);
+                }
+
+                loadRecentJobs(false);
+            })
+            .catch(() => { /* transient network error: keep polling */ });
+    };
+
+    stopPoll(jobId);
+    timers[jobId] = setInterval(poll, 2000);
+    poll();
+}
+
+function statusLabel(status) {
+    if (status === 'running') {
+        return I18N.t('js.job.running');
+    }
+    if (status === 'error') {
+        return I18N.t('js.job.error');
+    }
+
+    return I18N.t('js.job.done');
+}
+
+function statusColor(status) {
+    if (status === 'running') {
+        return 'bg-[#ffc480]';
+    }
+    if (status === 'error') {
+        return 'bg-[#FE4A60] text-white';
+    }
+
+    return 'bg-[#EBDBB7]';
+}
+
+function renderJobList(jobs) {
+    const container = document.getElementById('recent-jobs');
+    const list = document.getElementById('recent-jobs-list');
+
+    if (!container || !list) {
+        return false;
+    }
+
+    if (!jobs.length) {
+        container.classList.add('hidden');
+        return true;
+    }
+
+    container.classList.remove('hidden');
+    list.innerHTML = '';
+
+    jobs.forEach((job) => {
+        const li = document.createElement('li');
+
+        li.className = 'flex items-center justify-between gap-3 border-[3px] border-gray-900 rounded-lg bg-white px-3 py-2 cursor-pointer hover:bg-[#ffc480]/20';
+        li.onclick = () => openJob(job);
+
+        const repo = document.createElement('span');
+
+        repo.className = 'text-gray-900 font-medium text-sm truncate';
+        repo.textContent = job.repo_url || job.id.slice(0, 12);
+
+        const badge = document.createElement('span');
+
+        badge.className = `text-xs font-bold px-2 py-0.5 rounded-sm border border-gray-900 flex-shrink-0 ${statusColor(job.status)}`;
+        badge.textContent = statusLabel(job.status);
+
+        li.appendChild(repo);
+        li.appendChild(badge);
+        list.appendChild(li);
+    });
+
+    return true;
+}
+
+function openJob(job) {
+    const submitButton = document.querySelector('#ingestForm button[type="submit"]');
+
+    if (job.status === 'running') {
+        showLoading();
+        if (submitButton) {
+            setButtonLoadingState(submitButton, true);
+        }
+        pollJob(job.id);
+
+        return;
+    }
+
+    // done / error: fetch the full job and render it
+    fetch('/api/jobs/' + job.id)
+        .then(async (response) => {
+            if (!response.ok) {
+                showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${I18N.t('js.job.gone')}</div>`);
+                return;
+            }
+            const data = await response.json();
+
+            if (data.status === 'error') {
+                showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${translateError(data.error || I18N.t('js.error'))}</div>`);
+            } else if (data.result) {
+                handleSuccessfulResponse(data.result);
+            }
+        })
+        .catch(() => {});
+}
+
+function loadRecentJobs(resume = true) {
+    ensureUid();
+    fetch('/api/jobs')
+        .then(async (response) => {
+            if (!response.ok) {
+                return;
+            }
+            let data;
+
+            try {
+                data = await response.json();
+            } catch {
+                data = {};
+            }
+
+            const jobs = data.jobs || [];
+
+            if (!renderJobList(jobs) || !resume) {
+                return;
+            }
+
+            if (jobs.length) {
+                autoResume(jobs);
+            }
+        })
+        .catch(() => {});
+}
+
+function autoResume(jobs) {
+    // jobs is newest-first: resume the most recent one
+    openJob(jobs[0]);
+}
+
 // Helper function to collect form data
 function collectFormData(form) {
     const json_data = {};
@@ -143,7 +373,7 @@ function collectFormData(form) {
 function setButtonLoadingState(submitButton, isLoading) {
     if (!isLoading) {
         submitButton.disabled = false;
-        submitButton.innerHTML = submitButton.getAttribute('data-original-content') || 'Submit';
+        submitButton.innerHTML = submitButton.getAttribute('data-original-content') || I18N.t('js.submit');
         submitButton.classList.remove('bg-[#ffb14d]');
 
         return;
@@ -161,7 +391,7 @@ function setButtonLoadingState(submitButton, isLoading) {
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span class="ml-2">Processing...</span>
+            <span class="ml-2">${I18N.t('js.processing')}</span>
         </div>
     `;
     submitButton.classList.add('bg-[#ffb14d]');
@@ -224,11 +454,14 @@ function handleSubmit(event, showLoadingSpinner = false) {
 
     const json_data = collectFormData(form);
 
+    ensureUid();
+
     if (showLoadingSpinner) {
         setButtonLoadingState(submitButton, true);
     }
 
-    // Submit the form to /api/ingest as JSON
+    // Submit the form to /api/ingest as JSON; the endpoint creates a
+    // background job and returns 202 + job_id, which we then poll.
     fetch('/api/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -242,30 +475,34 @@ function handleSubmit(event, showLoadingSpinner = false) {
             } catch {
                 data = {};
             }
-            setButtonLoadingState(submitButton, false);
 
             if (!response.ok) {
+                setButtonLoadingState(submitButton, false);
+
                 // Show all error details if present
                 if (Array.isArray(data.detail)) {
                     const details = data.detail.map((d) => `<li>${d.msg || JSON.stringify(d)}</li>`).join('');
 
-                    showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'><b>Error(s):</b><ul>${details}</ul></div>`);
+                    showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'><b>${I18N.t('js.errors')}</b><ul>${details}</ul></div>`);
 
                     return;
                 }
                 // Other errors
-                showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${data.error || JSON.stringify(data) || 'An error occurred.'}</div>`);
+                showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${translateError(data.error || JSON.stringify(data) || I18N.t('js.error'))}</div>`);
 
                 return;
             }
 
-            // Handle error in data
-            if (data.error) {
-                showError(`<div class='mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>${data.error}</div>`);
+            // 202: job created -> poll until done/error (keeps loading state)
+            if (data.job_id) {
+                loadRecentJobs(false);
+                pollJob(data.job_id);
 
                 return;
             }
 
+            // Fallback: an unexpected synchronous result
+            setButtonLoadingState(submitButton, false);
             handleSuccessfulResponse(data);
         })
         .catch((error) => {
@@ -278,7 +515,7 @@ function copyFullDigest() {
     const summary = document.getElementById('result-summary').value;
     const directoryStructure = document.getElementById('directory-structure-content').value;
     const filesContent = document.getElementById('result-content').value;
-    const fullDigest = `Summary:\n${summary}\n\nDirectory Structure:\n${directoryStructure}\n\nFiles Content:\n${filesContent}`;
+    const fullDigest = `${I18N.t('js.summary')}:\n${summary}\n\n${I18N.t('js.directory')}:\n${directoryStructure}\n\n${I18N.t('js.content')}:\n${filesContent}`;
     const button = document.querySelector('[onclick="copyFullDigest()"]');
     const originalText = button.innerHTML;
 
@@ -287,7 +524,7 @@ function copyFullDigest() {
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
-            Copied!
+            ${I18N.t('js.copied')}
         `;
 
         setTimeout(() => {
@@ -303,7 +540,7 @@ function downloadFullDigest() {
     const summary = document.getElementById('result-summary').value;
     const directoryStructure = document.getElementById('directory-structure-content').value;
     const filesContent = document.getElementById('result-content').value;
-    const fullDigest = `Summary:\n${summary}\n\nDirectory Structure:\n${directoryStructure}\n\nFiles Content:\n${filesContent}`;
+    const fullDigest = `${I18N.t('js.summary')}:\n${summary}\n\n${I18N.t('js.directory')}:\n${directoryStructure}\n\n${I18N.t('js.content')}:\n${filesContent}`;
 
     // Show feedback on the button
     const button = document.querySelector('[onclick="downloadFullDigest()"]');
@@ -313,7 +550,7 @@ function downloadFullDigest() {
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
         </svg>
-        Downloading...
+        ${I18N.t('js.downloading')}
     `;
 
     // Create a blob and download it
@@ -335,7 +572,7 @@ function downloadFullDigest() {
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
-        Downloaded!
+        ${I18N.t('js.downloaded')}
     `;
 
     setTimeout(() => {
@@ -402,6 +639,7 @@ function setupGlobalEnterHandler() {
 document.addEventListener('DOMContentLoaded', () => {
     initializeSlider();
     setupGlobalEnterHandler();
+    loadRecentJobs(true);
 });
 
 

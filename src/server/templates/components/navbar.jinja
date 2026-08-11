@@ -9,8 +9,10 @@
                     </a>
                 </h1>
             </div>
-            {# Navigation with updated styling #}
+            {# Navigation #}
             <nav class="flex items-center space-x-6">
+                <a href="/" class="link-bounce text-gray-900">{{ t('nav.home') }}</a>
+                <a href="/app" class="link-bounce text-gray-900">{{ t('nav.app') }}</a>
                 <a href="/llms.txt" class="link-bounce flex items-center text-gray-900">
                     <span class="badge-new">NEW</span>
                     /llms.txt
@@ -31,6 +33,16 @@
                              alt="GitHub star icon">
                         <span id="github-stars">0</span>
                     </div>
+                </div>
+                {# Language switcher #}
+                <div class="flex items-center">
+                    <select id="lang-select"
+                            aria-label="{{ t('nav.lang') }}"
+                            onchange="window.location = '/lang/' + this.value + '?next=' + encodeURIComponent(window.location.pathname + window.location.search)"
+                            class="cursor-pointer border-[3px] border-gray-900 rounded-sm bg-[#fff4da] text-sm font-medium text-gray-900 px-1.5 py-1 focus:outline-none">
+                        <option value="zh-CN" {% if lang == 'zh-CN' %}selected{% endif %}>中文</option>
+                        <option value="en" {% if lang == 'en' %}selected{% endif %}>EN</option>
+                    </select>
                 </div>
             </nav>
         </div>

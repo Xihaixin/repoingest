@@ -1,4 +1,4 @@
-"""Utilities for processing Jupyter notebooks."""
+"""处理 Jupyter notebook 的工具函数。"""
 import json
 import warnings
 from itertools import chain
@@ -10,24 +10,24 @@ from gitingest.utils.exceptions import InvalidNotebookError
 
 def process_notebook(file: Path,include_output: bool = True) -> str:
     """
-    Process a Jupter notebook file and return an executable Python script as a string.
+    处理 Jupyter notebook 文件，并将可执行的 Python 脚本作为字符串返回。
 
-    Parameters
+    参数
     ----------
     file : Path
-        The path to the Jupter notebook file.
+        Jupyter notebook 文件的路径。
     include_output : bool
-        Whether to include cell outputs in the generated script, by default True.
+        是否在生成的脚本中包含单元格输出，默认为 True。
 
-    Returns
+    返回
     -------
     str
-        The executable Python script as a string.
+        可执行的 Python 脚本字符串。
 
-    Raises
+    异常
     ------
     InvalidNotebookError
-        If the notebook file is invalid or cannot be processed.
+        如果 notebook 文件无效或无法处理。
     """
     try:
         with file.open(encoding="utf-8") as f:
@@ -63,24 +63,24 @@ def process_notebook(file: Path,include_output: bool = True) -> str:
 
 def _process_cell(cell: Dict[str, Any], include_output: bool) -> Optional[str]:
     """
-    Process a Jupter notebook cell and return the cell content as a string.
+    处理 Jupyter notebook 单元格，并将单元格内容作为字符串返回。
 
-    Parameters
+    参数
     ----------
     cell : Dict[str, Any]
-        The cell dictionary from a Jupter notebook.
+        来自 Jupyter notebook 的单元格字典。
     include_output: bool
-        Whether to include cell outputs in the generated script
+        是否在生成的脚本中包含单元格输出。
 
-    Returns
+    返回
     -------
     str, optional
-        The cell content as a string, or None if the cell is empty.
+        单元格内容字符串，若单元格为空则返回 None。
 
-    Raises
+    异常
     ------
     ValueError
-        If an unexpected cell type is encountered.
+        如果遇到意外的单元格类型。
     """
     cell_type = cell["cell_type"]
 
@@ -113,22 +113,22 @@ def _process_cell(cell: Dict[str, Any], include_output: bool) -> Optional[str]:
 
 def _extract_output(output: Dict[str, Any]) -> List[str]:
     """
-    Extract the output from a Jupter notebook cell.
+    从 Jupyter notebook 单元格中提取输出。
 
-    Parameters
+    参数
     ----------
     output : Dict[str, Any]
-        The output dictionary from a Jupter notebook cell.
-    
-    Returns
+        Jupyter notebook 单元格的输出字典。
+
+    返回
     -------
     List[str]
-        The output as a list of strings.
+        输出字符串的列表。
 
-    Raises
+    异常
     ------
     ValueError
-        If an unknown output type is encountered.
+        如果遇到未知的输出类型。
     """
     output_type = output["output_type"]
 

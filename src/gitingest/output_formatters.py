@@ -1,34 +1,36 @@
-"""Functions to ingest and analyze a codebase directory or single file"""
+"""摄取并分析代码库目录或单个文件的函数"""
 import tiktoken
-import logging
 from typing import Optional, Tuple
 
 from gitingest.query_parsing import IngestionQuery
 from gitingest.schemas import FileSystemNode, FileSystemNodeType
+from gitingest.utils.logger import get_logger
+
+logger = get_logger("output_formatters")
 
 def format_node(node:FileSystemNode, query: IngestionQuery) -> Tuple[str,str,str]:
     """
-    Generate a summary, directory structure, and file contents for a given file system node.
+    为给定的文件系统节点生成摘要、目录结构和文件内容。
 
-    If the node represents a directory, the function will recursively process its contents.
+    如果节点表示目录，该函数将递归处理其内容。
 
-    Parameters
+    参数
     ----------
     node : FileSystemNode
-        The file system node to be summarized.
+        要生成摘要的文件系统节点。
     query : IngestionQuery
-        The parsed query object containing information about the repository and query parameters.
+        包含仓库信息和查询参数的已解析查询对象。
 
-    Returns
+    返回
     -------
     Tuple[str, str, str]
-        A tuple containing the summary, directory structure, and file contents.
+        包含摘要、目录结构和文件内容的元组。
     """
     is_single_file = node.type == FileSystemNodeType.FILE
     summary = _create_summary_prefix(query, single_file=is_single_file)
 
     if node.type == FileSystemNodeType.DIRECTORY:
-        summary += f"Files analysized:{node.file_count}\n"
+        summary += f"Files analyzed:{node.file_count}\n"
     elif node.type == FileSystemNodeType.FILE:
         summary += f"File:{node.name}\n"
         summary += f"Lines:{len(node.content.splitlines()):,}\n"
@@ -46,21 +48,21 @@ def format_node(node:FileSystemNode, query: IngestionQuery) -> Tuple[str,str,str
 
 def _create_summary_prefix(query: IngestionQuery, single_file: bool = False) -> str:
     """
-    Create a prefix string for summarizing a repository or local directory.
+    创建用于汇总仓库或本地目录的前缀字符串。
 
-    Includes repository name (if provided), commit/branch details, and subpath if relevant.
+    包含仓库名称（如果提供）、提交/分支详情，以及相关的子路径。
 
-    Parameters
+    参数
     ----------
     query : IngestionQuery
-        The parsed query object containing information about the repository and query parameters.
+        包含仓库信息和查询参数的已解析查询对象。
     single_file : bool
-        A flag indicating whether the summary is for a single file, by default False.
+        指示摘要是否针对单个文件的标志，默认值为 False。
 
-    Returns
+    返回
     -------
     str
-        A summary prefix string containing repository, commit, branch, and subpath details. 
+        包含仓库、提交、分支和子路径详情的摘要前缀字符串。
     """
     parts = []
 
@@ -81,26 +83,25 @@ def _create_summary_prefix(query: IngestionQuery, single_file: bool = False) -> 
 
 def _create_tree_structure(query: IngestionQuery, node: FileSystemNode, prefix: str = "", is_last: bool = True) -> str:
     """
-    Generate a tree-like string representation of the file structure.
+    生成文件结构的树状字符串表示。
 
-    This function generates a string representation of the directory structure, formatted
-    as a tree with appropriate indentation for nested directories and files.
+    该函数生成目录结构的字符串表示，格式化为树状，并对嵌套的目录和文件使用适当的缩进。
 
-    Parameters
+    参数
     ----------
     query : IngestionQuery
-        The parsed query object containing information about the repository and query parameters.
+        包含仓库信息和查询参数的已解析查询对象。
     node : FileSystemNode
-        The current directory or file node being processed.
+        当前正在处理的目录或文件节点。
     prefix : str
-        A string used for indentation and formatting of the tree structure, by default "".
+        用于树状结构缩进和格式化的字符串，默认值为 ""。
     is_last : bool
-        A flag indicating whether the current node is the last in its directory, by default True.
+        指示当前节点是否为其目录中的最后一个节点，默认值为 True。
 
-    Returns
+    返回
     -------
     str
-        A string representing the directory structure formatted as a tree.
+        表示格式化为树状的目录结构的字符串。
     """
     if not node.name:
         node.name = query.slug
@@ -124,48 +125,47 @@ def _create_tree_structure(query: IngestionQuery, node: FileSystemNode, prefix: 
 
 def _gather_file_contents(node: FileSystemNode) -> str:
     """
-    Recursively gather contents of all files under the given node.
+    递归收集给定节点下所有文件的内容。
 
-    This function recursively processes a directory node and gathers the contents of all files
-    under that node. It returns the concatenated content of all files as a single string.
+    该函数递归处理目录节点，收集该节点下所有文件的内容。它以单个字符串的形式返回所有文件内容的拼接结果。
 
-    Parameters
+    参数
     ----------
     node : FileSystemNode
-        The current directory or file node being processed.
+        当前正在处理的目录或文件节点。
 
-    Returns
+    返回
     -------
     str
-        The concatenated content of all files under the given node.
+        给定节点下所有文件内容的拼接字符串。
     """
-    logging.info(f"We are handling the filenode {node.name}. it's type is {node.type}")
+    logger.debug("Handling file node: {} (type={})", node.name, node.type)
     if node.type != FileSystemNodeType.DIRECTORY:
         return node.content_string
-    logging.info(f"Let's check the directory's children node {[child.name for child in node.children]}")
+    logger.debug("Directory children: {}", [child.name for child in node.children])
     return "\n".join(_gather_file_contents(child) for child in node.children)
 
 def _format_token_count(text: str) -> Optional[str]:
     """
-    Return a human-readable string representing the token count of the given text.
+    返回表示给定文本 token 数的可读字符串。
 
-    E.g., '120' -> '120', '1200' -> '1.2k', '1200000' -> '1.2M'.
+    例如：'120' -> '120'，'1200' -> '1.2k'，'1200000' -> '1.2M'。
 
-    Parameters
+    参数
     ----------
     text : str
-        The text string for which the token count is to be estimated.
+        需要估算 token 数的文本字符串。
 
-    Returns
+    返回
     -------
     str, optional
-        The formatted number of tokens as a string (e.g., '1.2k', '1.2M'), or `None` if an error occurs.
+        格式化后的 token 数字符串（例如 '1.2k'、'1.2M'），如果发生错误则返回 `None`。
     """
     try:
         encoding = tiktoken.get_encoding("cl100k_base")
         total_tokens = len(encoding.encode(text, disallowed_special=()))
     except (ValueError, UnicodeEncodeError) as exc:
-        print(exc)
+        logger.error("Token estimation failed: {}", exc)
         return None
     
     if total_tokens >= 1_000_000:

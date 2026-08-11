@@ -1,4 +1,4 @@
-"""Functions to ingest and analyze a codebase directory or single file."""
+"""摄取并分析代码库目录或单个文件的函数。"""
 import warnings
 from pathlib import Path
 from typing import Tuple
@@ -8,33 +8,36 @@ from gitingest.output_formatters import format_node
 from gitingest.query_parsing import IngestionQuery
 from gitingest.schemas import FileSystemNode, FileSystemNodeType, FileSystemStats
 from gitingest.utils.ingestion_utils import _should_exclude, _should_include
+from gitingest.utils.logger import get_logger
+
 try:
     import tomllib  # type: ignore[import]
 except ImportError:
     import tomli as tomllib
 
+logger = get_logger("ingestion")
+
 def ingest_query(query: IngestionQuery) -> Tuple[str,str,str]:
     """
-    Run the ingestion process for a parsed query.
+    为已解析的查询运行摄取流程。
 
-    This is the main entry point for analyzing a codebase directory or single file. It processes the query
-    parameters, reads the file or directory content, and generates a summary, directory structure, and file content,
-    along with token estimations.
+    这是分析代码库目录或单个文件的主入口函数。它处理查询参数，读取文件或目录内容，并生成摘要、
+    目录结构和文件内容，以及 token 估算。
 
-    Parameters
+    参数
     ----------
     query : IngestionQuery
-        The parsed query object containing information about the repository and query parameters.
+        包含仓库信息和查询参数的已解析查询对象。
 
-    Returns
+    返回
     -------
     Tuple[str, str, str]
-        A tuple containing the summary, directory structure, and file contents.
+        包含摘要、目录结构和文件内容的元组。
 
-    Raises
+    异常
     ------
     ValueError
-        If the path cannot be found, is not a file, or the file has no content.
+        如果路径不存在、不是文件，或文件没有内容。
     """
     
     subpath = Path(query.subpath.strip('/')).as_posix()
@@ -46,7 +49,7 @@ def ingest_query(query: IngestionQuery) -> Tuple[str,str,str]:
         raise ValueError(f"{query.slug} cannot be found")
 
     if (query.type and query.type == "blob") or query.local_path.is_file():
-        # TODO We do this wrong! We should still check the branch and commit!
+        # TODO 我们这样做是错的！我们仍然应该检查分支和提交！
         if not path.is_file():
             raise ValueError(f"Path {path} is not a file")
         relative_path = path.relative_to(query.local_path)
@@ -84,18 +87,17 @@ def ingest_query(query: IngestionQuery) -> Tuple[str,str,str]:
 
 def apply_gitingest_file(path: Path, query: IngestionQuery) -> None:
     """
-    Apply the .gitingest file to the query object.
+    将 .gitingest 文件应用到查询对象上。
 
-    This function reads the .gitingest file in the specified path and updates the query object with the ignore
-    patterns found in the file.
+    该函数读取指定路径下的 .gitingest 文件，并使用文件中找到的忽略模式更新查询对象。
 
-    Parameters
+    参数
     ----------
     path : Path
-        The path of the directory to ingest.
+        要摄取的目录路径。
     query : IngestionQuery
-        The parsed query object containing information about the repository and query parameters.
-        It should have an attribute `ignore_patterns` which is either None or a set of strings.
+        包含仓库信息和查询参数的已解析查询对象。
+        它应具有 `ignore_patterns` 属性，该属性为 None 或字符串集合。
     """
 
     path_gitingest = path / ".gitingest"
@@ -151,19 +153,19 @@ def _process_node(
         stats: FileSystemStats,
 ) -> None:
     """
-    Process a file or directory item within a directory.
+    处理目录中的文件或目录项。
 
-    This function handles each file or directory item, checking if it should be included or excluded based on the
-    provided patterns. It handles symlinks, directories, and files accordingly.
+    该函数处理每个文件或目录项，根据提供的模式判断是否应包含或排除它们。它会相应地处理符号链接、
+    目录和文件。
 
-    Parameters
+    参数
     ----------
     node : FileSystemNode
-        The current directory or file node being processed.
+        当前正在处理的目录或文件节点。
     query : IngestionQuery
-        The parsed query object containing information about the repository and query parameters.
+        包含仓库信息和查询参数的已解析查询对象。
     stats : FileSystemStats
-        Statistics tracking object for the total file count and size.
+        用于跟踪总文件数和大小的统计对象。
     """
     if limit_exceeded(stats, node.depth):
         return
@@ -176,7 +178,7 @@ def _process_node(
             continue
 
         if sub_path.is_symlink():
-            _process_symlink(path=sub_path, parent_node=node, stats=stats, loacl_path=query.local_path)
+            _process_symlink(path=sub_path, parent_node=node, stats=stats, local_path=query.local_path)
         elif sub_path.is_file():
             _process_file(path=sub_path, parent_node=node,stats=stats,local_path=query.local_path)
         elif sub_path.is_dir():
@@ -200,26 +202,26 @@ def _process_node(
             node.dir_count += 1 + child_directory_node.dir_count
 
         else:
-            print(f"Warring:{sub_path} is an unknown file type,shipping")
+            logger.warning("Unknown file type encountered: {}, skipping", sub_path)
 
     node.sort_children()
 
 def _process_symlink(path: Path, parent_node: FileSystemNode, stats: FileSystemStats, local_path: Path) -> None:
     """
-    Process a symlink in the file system.
+    处理文件系统中的符号链接。
 
-    This function checks the symlink's target.
+    该函数检查符号链接的目标。
 
-    Parameters
+    参数
     ----------
     path : Path
-        The full path of the symlink.
+        符号链接的完整路径。
     Parent_node : FileSystemNode
-        The parent directory node.
+        父目录节点。
     stats : FileSystemStats
-        Statistics tracking object for the total file count and size.
+        用于跟踪总文件数和大小的统计对象。
     local_path : Path
-        The base path of the repository or directory being processed.
+        正在处理的仓库或目录的基础路径。
     """
     child = FileSystemNode(
         name=path.name,
@@ -234,31 +236,31 @@ def _process_symlink(path: Path, parent_node: FileSystemNode, stats: FileSystemS
 
 def _process_file(path: Path, parent_node: FileSystemNode,stats: FileSystemStats, local_path: Path) -> None:
     """
-    Process a file in the file system.
+    处理文件系统中的文件。
 
-    The function checks the file's size, increments the statistic, and reads its content.
-    If the file size exceeds the maximum allowed, it raises an error.
+    该函数检查文件的大小，递增统计信息，并读取文件内容。
+    如果文件大小超过允许的最大值，则会抛出错误。
 
-    Parameters
+    参数
     ----------
     path : Path
-        The full path of the file.
+        文件的完整路径。
     parent_node : FileSystemNode
-        The dictionary to accumulate the results.
+        用于累积结果的字典。
     stats : FileSystemStats
-        Statistic tracking object for the total file count and size.
+        用于跟踪总文件数和大小的统计对象。
     local_path : Path
-        The base path of the repository or directory being processed.
+        正在处理的仓库或目录的基础路径。
     """
     file_size = path.stat().st_size
     if stats.total_size + file_size > MAX_TOTAL_SIZE_BYTES:
-        print(f"Skipping file {path}: would exceed total size limit")
+        logger.warning("Skipping file {}: would exceed total size limit ({:.1f} MB)", path, MAX_TOTAL_SIZE_BYTES / 1024 / 1024)
         return
     stats.total_files += 1
     stats.total_size += file_size
 
     if stats.total_files > MAX_FILES:
-        print(f"Maximum file limit ({MAX_FILES}) reached")
+        logger.warning("Maximum file limit ({}) reached", MAX_FILES)
         return
     
     child = FileSystemNode(
@@ -277,32 +279,32 @@ def _process_file(path: Path, parent_node: FileSystemNode,stats: FileSystemStats
 
 def limit_exceeded(stats: FileSystemStats, depth: int) -> bool:
     """
-    Check if any of the traversal limits have been exceeded.
+    检查遍历限制是否已超过。
 
-    This function checks if the current traversal has exceeded any of the configured limits:
-    maximum directory depth, maximum number of files, or maximum total size in bytes.
+    该函数检查当前遍历是否已超过任何配置的限制：
+    最大目录深度、最大文件数或最大总大小（字节）。
 
-    Parameters
+    参数
     ----------
     stats : FileSystemStats
-        Statistics tracking object for the total file count and size.
+        用于跟踪总文件数和大小的统计对象。
     depth : int
-        The current depth of directory traversal.
+        当前目录遍历的深度。
 
-    Returns
+    返回
     -------
     bool
-        True if any limit has been exceeded, False otherwise.
+        如果任何限制已被超过则为 True，否则为 False。
     """
 
     if depth > MAX_DIRECTORY_DEPTH:
-        print(f"Maximum depth limit ({MAX_DIRECTORY_DEPTH}) reached")
+        logger.warning("Maximum depth limit ({}) reached", MAX_DIRECTORY_DEPTH)
         return True
     if stats.total_files >= MAX_FILES:
-        print(f"Maxinum file limt ({MAX_FILES}) reached")
+        logger.warning("Maximum file limit ({}) reached", MAX_FILES)
         return True
     if stats.total_size >= MAX_TOTAL_SIZE_BYTES:
-        print(f"Maximum total size limit ({MAX_TOTAL_SIZE_BYTES/1024/1024:.1f}MB)")
+        logger.warning("Maximum total size limit ({:.1f} MB) reached", MAX_TOTAL_SIZE_BYTES / 1024 / 1024)
         return True
     
     return False

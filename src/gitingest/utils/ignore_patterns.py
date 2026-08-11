@@ -1,4 +1,4 @@
-"""Default ignore patterns for Gitingest."""
+"""Gitingest 的默认忽略模式。"""
 
 from typing import Set
 
@@ -17,7 +17,7 @@ DEFAULT_IGNORE_PATTERNS: Set[str] = {
     ".hypothesis",
     "poetry.lock",
     "Pipfile.lock",
-    # JavaScript/FileSystemNode
+    # JavaScript/文件系统节点
     "node_modules",
     "bower_components",
     "package-lock.json",
@@ -39,7 +39,7 @@ DEFAULT_IGNORE_PATTERNS: Set[str] = {
     ".classpath",
     "gradle-app.setting",
     "*.gradle",
-    # IDEs and editors / Java
+    # IDE 和编辑器 / Java
     ".project",
     # C/C++
     "*.o",
@@ -87,14 +87,14 @@ DEFAULT_IGNORE_PATTERNS: Set[str] = {
     "*.nupkg",
     # Go / .NET / C#
     "bin/",
-    # Version control
+    # 版本控制
     ".git",
     ".svn",
     ".hg",
     ".gitignore",
     ".gitattributes",
     ".gitmodules",
-    # Images and media
+    # 图片与媒体
     "*.svg",
     "*.png",
     "*.jpg",
@@ -106,13 +106,13 @@ DEFAULT_IGNORE_PATTERNS: Set[str] = {
     "*.mp4",
     "*.mp3",
     "*.wav",
-    # Virtual environments
+    # 虚拟环境
     "venv",
     ".venv",
     "env",
     ".env",
     "virtualenv",
-    # IDEs and editors
+    # IDE 和编辑器
     ".idea",
     ".vscode",
     ".vs",
@@ -120,7 +120,7 @@ DEFAULT_IGNORE_PATTERNS: Set[str] = {
     "*.swn",
     ".settings",
     "*.sublime-*",
-    # Temporary and cache files
+    # 临时与缓存文件
     "*.log",
     "*.bak",
     "*.swp",
@@ -132,7 +132,7 @@ DEFAULT_IGNORE_PATTERNS: Set[str] = {
     ".DS_Store",
     "Thumbs.db",
     "desktop.ini",
-    # Build directories and artifacts
+    # 构建目录和构建产物
     "build",
     "dist",
     "target",
@@ -141,21 +141,21 @@ DEFAULT_IGNORE_PATTERNS: Set[str] = {
     "*.egg",
     "*.whl",
     "*.so",
-    # Documentation
+    # 文档
     "site-packages",
     ".docusaurus",
     ".next",
     ".nuxt",
-    # Other common patterns
-    ## Minified files
+    # 其他常见模式
+    ## 压缩（minified）文件
     "*.min.js",
     "*.min.css",
-    ## Source maps
+    ## 源映射（source map）
     "*.map",
     ## Terraform
     ".terraform",
     "*.tfstate*",
-    ## Dependencies in various languages
+    ## 各种语言的依赖
     "vendor/",
     # Gitingest
     "digest.txt",

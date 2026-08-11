@@ -1,4 +1,4 @@
-"""This module contains functions to parse and validate input sources and patterns"""
+"""本模块包含解析和校验输入来源及模式的函数"""
 import hashlib
 import re
 import uuid
@@ -30,36 +30,35 @@ async def parse_query(
         ignore_patterns: Optional[Union[str,Set[str]]] = None,
 ) -> IngestionQuery:
     """
-    Parse the input source (URL or path) to extract relevant details for the query.
+    解析输入来源（URL 或路径）以提取查询相关详情。
 
-    This function parses the input source to extract details such as the username, repository name,
-    commit hash, branch name, and other relevant information. It also processes the include and ignore
-    patterns to filter the files and directories to include or exclude from the query.
+    该函数解析输入来源，以提取用户名、仓库名、提交哈希、分支名等信息。它还会处理包含和忽略模式，
+    以过滤查询中要包含或排除的文件和目录。
 
-    Parameters
+    参数
     ----------
     source : str
-        The source URL or file path to parse.
+        要解析的来源 URL 或文件路径。
     max_file_size : int
-        The maximum file size in bytes to include.
+        要包含的最大文件大小（字节）。
     from_web : bool
-        Flag indicating whether the source is a web URL.
+        指示来源是否为网页 URL 的标志。
     include_patterns : Union[str, Set[str]], optional
-        Patterns to include, by default None. Can be a set of strings or a single string.
+        要包含的模式，默认值为 None。可以是字符串集合或单个字符串。
     ignore_patterns : Union[str, Set[str]], optional
-        Patterns to ignore, by default None. Can be a set of strings or a single string.
+        要忽略的模式，默认值为 None。可以是字符串集合或单个字符串。
 
-    Returns
+    返回
     -------
     IngestionQuery
-        A dataclass object containing the parsed details of the repository or file path.
+        包含仓库或文件路径解析详情的 dataclass 对象。
     """
-    # Determine the parsing method based on the source type 
+    # 根据来源类型确定解析方法 
     if from_web or urlparse(source).scheme in ("https", "http") or any(h in source for h in KNOW_GIT_HOSTS):
-        # We either have a full URL or a domain-less slug
+        # 我们处理的要么是完整 URL，要么是没有域名的 slug
         query = await _parse_remote_repo(source)
     else:
-        # local path scenario
+        # 本地路径场景
         query = _parse_local_dir_path(source)
     
     ignore_patterns_set = DEFAULT_IGNORE_PATTERNS.copy()
@@ -92,38 +91,38 @@ async def parse_query(
 
 async def _parse_remote_repo(source: str) -> IngestionQuery:
     """
-    Parse a repository URL into a structured query dictionary.
+    将仓库 URL 解析为结构化的查询字典。
 
-    If source is:
-      - A fully qualified URL (https://gitlab.com/...), parse & verify that domain
-      - A URL missing 'https://' (gitlab.com/...), add 'https://' and parse
-      - A 'slug' (like 'pandas-dev/pandas'), attempt known domains until we find one that exists.
+    如果来源是：
+      - 完整的 URL（https://gitlab.com/...），则解析并校验其域名
+      - 缺少 'https://' 的 URL（gitlab.com/...），则补上 'https://' 并解析
+      - 'slug'（如 'pandas-dev/pandas'），则尝试已知域名直到找到存在的那个。
 
-    Parameters
+    参数
     ----------
     source : str
-        The URL or domain-less slug to parse.
+        要解析的 URL 或无域名的 slug。
 
-    Returns
+    返回
     -------
     IngestionQuery
-        A dictionary containing the parsed details of the repository.
+        包含仓库解析详情的字典。
     """
     source = unquote(source)
 
-    # Attemp to parse
+    # 尝试解析
     parsed_url = urlparse(source)
 
     if parsed_url.scheme:
         _validate_url_scheme(parsed_url.scheme)
         _validate_host(parsed_url.netloc.lower())
 
-    else: # Will be of the form 'host/user/repo' or 'user/repo'
+    else: # 形式为 'host/user/repo' 或 'user/repo'
         tmp_host = source.split("/")[0].lower()
         if "." in tmp_host:
             _validate_host(tmp_host)
         else:
-            # No scheme, no domain => user typed "user/repo", so we'll guess the domain.
+            # 无 scheme、无域名 => 用户输入了 "user/repo"，因此我们猜测域名。
             host = await try_domain_for_user_and_repo(*_get_user_and_repo_from_path(source)) 
             source = f"{host}/{source}"
 
@@ -134,7 +133,7 @@ async def _parse_remote_repo(source: str) -> IngestionQuery:
     user_name, repo_name = _get_user_and_repo_from_path(parsed_url.path)
     url = f"https://{host}/{user_name}/{repo_name}"
 
-    # Use URL hash for deterministic directory naming (enables cache reuse)
+    # 使用 URL 哈希进行确定性目录命名（支持缓存复用）
     _id = hashlib.md5(url.encode()).hexdigest()[:12]
     slug = f"{user_name}-{repo_name}"
     local_path = TMP_BASE_PATH / _id / slug
@@ -153,19 +152,19 @@ async def _parse_remote_repo(source: str) -> IngestionQuery:
     if not remaining_parts:
         return parsed
     
-    possible_type = remaining_parts.pop(0) # e.g. 'issues', 'pull', 'tree', 'blob'
+    possible_type = remaining_parts.pop(0) # 例如 'issues'、'pull'、'tree'、'blob'
 
-    # If no extra path parts, just return
+    # 如果没有额外的路径部分，直接返回
     if not remaining_parts:
         return parsed
     
-    # If this is an issues page or pull requests, return early without processing subpath
+    # 如果是 issues 页面或 pull requests，直接返回，不处理子路径
     if remaining_parts and possible_type in ("issues", "pull"):
         return parsed
     
     parsed.type = possible_type
 
-    # Commit or branch
+    # 提交或分支
     commit_or_branch = remaining_parts[0]
     if _is_valid_git_commit_hash(commit_or_branch):
         parsed.commit = commit_or_branch
@@ -173,7 +172,7 @@ async def _parse_remote_repo(source: str) -> IngestionQuery:
     else:
         parsed.branch = await _config_branch_and_subpath(remaining_parts, url)
 
-    # Subpath if anything left
+    # 如果还有剩余路径，则作为子路径
     if remaining_parts:
         parsed.subpath += "/".join(remaining_parts)
 
@@ -181,20 +180,20 @@ async def _parse_remote_repo(source: str) -> IngestionQuery:
 
 async def _config_branch_and_subpath(remaining_parts: List[str], url: str) -> Optional[str]:
     """
-    Configure the branch and subpath based on the remaining parts of the URL.
-    Parameters
+    根据 URL 的剩余部分配置分支和子路径。
+    参数
     ----------
     remaining_parts : List[str]
-        The remaining parts of the URL path.
+        URL 路径的剩余部分。
     url : str
-        The URL of the repository.
-    Returns
+        仓库的 URL。
+    返回
     -------
     str, optional
-        The branch name if found, otherwise None.
+        找到的分支名称，否则为 None。
     """
     try:
-        # Fetch the list of branches from the remote repository
+        # 从远程仓库获取分支列表
         branches: List[str] = await fetch_remote_branch_list(url)
     except RuntimeError as exc:
         warnings.warn(f"Warning: Failed to fetch branch list: {exc}", RuntimeWarning)
@@ -213,24 +212,24 @@ async def _config_branch_and_subpath(remaining_parts: List[str], url: str) -> Op
 
 async def try_domain_for_user_and_repo(user_name: str, repo_name: str) -> str:
     """
-        Attempt to find a valid repository host for the given user_name and repo_name.
+        尝试为给定的 user_name 和 repo_name 找到有效的仓库主机。
 
-    Parameters
+    参数
     ----------
     user_name : str
-        The username or owner of the repository.
+        仓库的用户名或所有者。
     repo_name : str
-        The name of the repository.
+        仓库的名称。
 
-    Returns
+    返回
     -------
     str
-        The domain of the valid repository host.
+        有效仓库主机的域名。
 
-    Raises
+    异常
     ------
     ValueError
-        If no valid repository host is found for the given user_name and repo_name.
+        如果没有为给定的 user_name 和 repo_name 找到有效的仓库主机。
     """
 
     for domain in KNOW_GIT_HOSTS:
@@ -242,17 +241,17 @@ async def try_domain_for_user_and_repo(user_name: str, repo_name: str) -> str:
 
 def _parse_local_dir_path(path_str: str) ->IngestionQuery:
     """
-    Parse the given file path into a structured query dictionary.
+    将给定的文件路径解析为结构化的查询字典。
 
-    Parameters
+    参数
     ----------
     path_str : str
-        The file path to parse.
+        要解析的文件路径。
 
-    Returns
+    返回
     -------
     IngestionQuery
-        A dictionary containing the parsed details of the file path.
+        包含文件路径解析详情的字典。
     """
     path_obj = Path(path_str).resolve()
     slug = path_obj.name if path_str == "." else path_str.strip("/")
@@ -267,27 +266,27 @@ def _parse_local_dir_path(path_str: str) ->IngestionQuery:
 
 def _parse_patterns(pattern:Union[str,Set[str]]) -> Set[str]:
     """
-    Parse and validate file/directory patterns for inclusion or exclusion.
+    解析并校验用于包含或排除的文件/目录模式。
 
-    Takes either a single pattern string or set of pattern strings and processes them into a normalized list.
-    Patterns are split on commas and spaces, validated for allowed characters, and normalized.
+    接受单个模式字符串或模式字符串集合，并将它们处理为规范化列表。
+    模式会按逗号和空格拆分，校验允许的字符，然后进行规范化。
 
-    Parameters
+    参数
     ----------
     pattern : Set[str] | str
-        Pattern(s) to parse - either a single string or set of strings
+        要解析的模式——可以是单个字符串或字符串集合。
 
-    Returns
+    返回
     -------
     Set[str]
-        A set of normalized patterns.
+        规范化后的模式集合。
 
-    Raises
+    异常
     ------
     InvalidPatternError
-        If any pattern contains invalid characters. Only alphanumeric characters,
-        dash (-), underscore (_), dot (.), forward slash (/), plus (+), and
-        asterisk (*) are allowed.
+        如果任何模式包含无效字符。仅允许字母数字字符、
+        连字符 (-)、下划线 (_)、点 (.)、正斜杠 (/)、加号 (+) 和
+        星号 (*)。
     """
 
     patterns = pattern if isinstance(pattern,Set) else {pattern}

@@ -3,21 +3,21 @@ from pathlib import Path
 
 def removesuffix(s: str, suffix: str) -> str:
     """
-    Remove a suffix from a string.
+    从字符串中移除后缀。
 
-    Compatible with Python 3.8.
+    兼容 Python 3.8。
 
-    Parameters
+    参数
     ----------
     s : str
-        String to remove suffix from.
+        要移除后缀的字符串。
     suffix : str
-        Suffix to remove.
+        要移除的后缀。
 
-    Returns
+    返回
     -------
     str
-        String with suffix removed.
+        移除后缀后的字符串。
 
     """
     return s[:len(suffix)] if s.endswith(suffix) else s

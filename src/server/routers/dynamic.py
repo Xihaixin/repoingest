@@ -1,86 +1,89 @@
-"""This module defines the dynamic router for handling dynamic path requests."""
+"""该模块定义用于处理动态路径请求的 dynamic 路由。"""
 
 from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
-from server.query_processor import process_query
-from server.server_config import templates
+from server.models import IngestRequest, PatternType
+from server.routers.ingest import create_ingest_job
+from server.server_config import render_template
 from server.server_utils import limiter
 
 router = APIRouter()
 
+
 @router.get("/{full_path:path}")
 async def catch_all(request: Request, full_path: str) -> HTMLResponse:
     """
-    Render a page with a Git URL based on the provided path.
+    根据提供的路径渲染包含 Git URL 的页面。
 
-    This endpoint catches all GET requests with a dynamic path, constructs a Git URL
-    using the `full_path` parameter, and renders the `git.jinja` template with that URL.
+    该端点捕获所有带动态路径的 GET 请求，使用 `full_path` 参数构造一个 Git URL，
+    并以该 URL 渲染 `git.jinja` 模板。
 
-    Parameters
-    ----------
+    参数
+    -------
     request : Request
-        The incoming request object, which provides context for rendering the response.
+        传入的请求对象，为渲染响应提供上下文。
     full_path : str
-        The full path extracted from the URL, which is used to build the Git URL.
+        从 URL 中提取的完整路径，用于构造 Git URL。
 
-    Returns
+    返回
     -------
     HTMLResponse
-        An HTML response containing the rendered template, with the Git URL
-        and other default parameters such as loading state and file size.
+        一个 HTML 响应，包含渲染后的模板、Git URL 以及其他默认参数
+        （如加载状态和文件大小）。
     """
-    return templates.TemplateResponse(
+    return render_template(
         "git.jinja",
-        {
-            "request": request,
-            "repo_url": full_path,
-            "loading": True,
-            "default_file_size": 243,
-        },
+        request,
+        repo_url=full_path,
+        loading=True,
+        default_file_size=243,
     )
 
-@router.post("/{full_path:path}", response_class=HTMLResponse)
+
+@router.post("/{full_path:path}")
 @limiter.limit("10/minute")
 async def process_catch_all(
     request: Request,
     input_text: str = Form(...),
     max_file_size: int = Form(...),
-    pattern_type: str = Form(...),
+    pattern_type: PatternType = Form(...),
     pattern: str = Form(...),
-) -> HTMLResponse:
+    token: str = Form(""),
+) -> JSONResponse:
     """
-    Process the form submission with user input for query parameters.
+    处理包含用户查询参数输入的表单提交。
 
-    This endpoint handles POST requests, processes the input parameters (e.g., text, file size, pattern),
-    and calls the `process_query` function to handle the query logic, returning the result as an HTML response.
+    该端点捕获原生（无 JavaScript）表单提交，并将其转发到与 ``POST /api/ingest``
+    相同的后台任务流水线，返回相同的 ``202`` 响应并带有 ``job_id``。
 
-    Parameters
-    ----------
-    request : Request
-        The incoming request object, which provides context for rendering the response.
-    input_text : str
-        The input text provided by the user for processing, by default taken from the form.
-    max_file_size : int
-        The maximum allowed file size for the input, specified by the user.
-    pattern_type : str
-        The type of pattern used for the query, specified by the user.
-    pattern : str
-        The pattern string used in the query, specified by the user.
-
-    Returns
+    参数
     -------
-    HTMLResponse
-        An HTML response generated after processing the form input and query logic,
-        which will be rendered and returned to the user.
+    request : Request
+        传入的请求对象，为渲染响应提供上下文。
+    input_text : str
+        用户提交的用于处理的输入文本，默认取自表单。
+    max_file_size : int
+        用户指定的输入最大允许文件大小。
+    pattern_type : PatternType
+        用户指定的查询所用模式类型。
+    pattern : str
+        用户指定的查询所用的模式字符串。
+    token : str
+        用于私有仓库的可选 GitHub 个人访问令牌。
+
+    返回
+    -------
+    JSONResponse
+        一个 ``202`` 响应，内容为 ``{"job_id": ..., "status": "running"}``，
+        与 ``/api/ingest`` 端点返回一致。
     """
-    return await process_query(
-        request,
-        input_text,
-        max_file_size,
-        pattern_type,
-        pattern,
-        is_index=False,
+    ingest_request = IngestRequest(
+        input_text=input_text,
+        max_file_size=max_file_size,
+        pattern_type=pattern_type,
+        pattern=pattern,
+        token=token,
     )
-
-
+    payload = await create_ingest_job(request, ingest_request)
+    return JSONResponse(status_code=202, content=payload)

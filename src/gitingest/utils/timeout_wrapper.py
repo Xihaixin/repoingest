@@ -1,4 +1,4 @@
-"""Utility function for the Gitingest package."""
+"""Gitingest 包的工具函数。"""
 import asyncio
 import functools
 from typing import Any, Awaitable, Callable, TypeVar
@@ -9,23 +9,21 @@ T = TypeVar("T")
 
 def async_timeout(seconds) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
     """
-    Async Timeout decorator.
+    异步超时装饰器。
 
-    This decorator wraps an asynchronous function and ensures it does not run for
-    longer than the specified number of seconds. If the function execution exceeds
-    this limit, it raises an `AsyncTimeoutError`.
+    该装饰器包装一个异步函数，并确保其运行时间不超过指定的秒数。
+    如果函数执行超出该限制，则抛出 `AsyncTimeoutError`。
 
-    Parameters
+    参数
     ----------
     seconds : int
-        The maximum allowed time (in seconds) for the asynchronous function to complete.
+        异步函数允许的最大执行时间（秒）。
 
-    Returns
+    返回
     -------
     Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]
-        A decorator that, when applied to an async function, ensures the function
-        completes within the specified time limit. If the function takes too long,
-        an `AsyncTimeoutError` is raised.
+        一个装饰器，应用于异步函数后可确保其在指定的时限内完成。
+        如果函数执行时间过长，则抛出 `AsyncTimeoutError`。
     """
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         @functools.wraps(func)

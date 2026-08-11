@@ -101,6 +101,26 @@ summary, tree, content = await ingest_async("path/to/directory")
    ALLOWED_HOSTS="example.com, localhost, 127.0.0.1"
    ```
 
+## 📝 日志系统
+
+日志系统基于 [Loguru](https://github.com/Delgan/loguru)，日志行均包含**完整日期与时间**（`YYYY-MM-DD HH:mm:ss.SSS`），并按天自动轮转、保留 14 天。
+
+每个 HTTP 请求都会被分配唯一 `request_id`（同时通过响应头 `X-Request-ID` 返回给客户端），同一请求在解析、克隆、摘要、响应全过程的日志均带该标识，**失败请求可按 `request_id` 一键溯源**。
+
+可通过环境变量配置（默认值见括号）：
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `REPOINGEST_LOG_LEVEL` | `INFO` | 全局日志级别 |
+| `REPOINGEST_LOG_FILE` | `src/logs/repoingest.log` | 日志文件路径（相对代码 `src/` 目录解析，与进程工作目录无关） |
+| `REPOINGEST_LOG_ROTATION` | `00:00` | 轮转规则（时间/大小） |
+| `REPOINGEST_LOG_RETENTION` | `14 days` | 日志保留时长 |
+| `REPOINGEST_LOG_COMPRESSION` | `gz` | 轮转文件压缩格式 |
+| `REPOINGEST_LOG_JSON` | `0` | 设为 `1` 输出 JSON 行 |
+| `REPOINGEST_LOG_TO_STDOUT` | `1` | 设为 `0` 关闭控制台输出 |
+| `REPOINGEST_PROBE_TIMEOUT` | `10` | 仓库存在性探测超时（秒） |
+| `REPOINGEST_SLOW_REQUEST_MS` | `30000` | 慢请求告警阈值（毫秒） |
+
 ## 🤝 贡献方式
 
 ### 非技术类贡献

@@ -1,4 +1,4 @@
-"""This module contains the FastAPI router for downloading a digest file."""
+"""该模块包含用于下载摘要（digest）文件的 FastAPI 路由。"""
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
@@ -10,29 +10,27 @@ router = APIRouter()
 @router.get("/download/{digest_id}")
 async def download_ingest(digest_id: str) -> Response:
     """
-    Download a .txt file associated with a given digest ID.
+    下载与给定摘要 ID 关联的 .txt 文件。
 
-    This function searches for a `.txt` file in a directory corresponding to the provided
-    digest ID. If a file is found, it is read and returned as a downloadable attachment.
-    If no `.txt` file is found, an error is raised.
+    该函数在对应给定摘要 ID 的目录中查找 `.txt` 文件。如果找到文件，
+    则读取其内容并作为可下载附件返回。如果找不到 `.txt` 文件，则抛出异常。
 
-    Parameters
+    参数
     ----------
     digest_id : str
-        The unique identifier for the digest. It is used to find the corresponding directory
-        and locate the .txt file within that directory.
+        摘要的唯一标识符，用于查找对应的目录并定位其中的 .txt 文件。
 
-    Returns
+    返回
     -------
     Response
-        A FastAPI Response object containing the content of the found `.txt` file. The file is
-        sent with the appropriate media type (`text/plain`) and the correct `Content-Disposition`
-        header to prompt a file download.
+        包含所找到 `.txt` 文件内容的 FastAPI Response 对象。该文件以适当的
+        媒体类型（`text/plain`）和正确的 `Content-Disposition` 响应头发送，
+        以触发文件下载。
 
-    Raises
+    异常
     ------
     HTTPException
-        If the digest directory is not found or if no `.txt` file exists in the directory.
+        当摘要目录不存在或目录中不存在 `.txt` 文件时抛出。
     """
     directory = TMP_BASE_PATH / digest_id
 
@@ -47,7 +45,7 @@ async def download_ingest(digest_id: str) -> Response:
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Digest not found") from exc
     
-    # Find the first .txt file in the directory
+    # 在目录中查找第一个 .txt 文件
     first_file = txt_files[0]
 
     with first_file.open(encoding="utf-8") as f:

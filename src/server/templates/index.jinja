@@ -4,15 +4,15 @@
         <div class="relative w-full flex sm:flex-row flex-col justify-center sm:items-center">
             {# Title & Sparkles #}
             <h1 class="landing-page-title">
-                Prompt-friendly
+                {{ t('app.title1') }}
                 <br>
-                codebase&nbsp;
+                {{ t('app.title2') }}&nbsp;
             </h1>
             <img src="/static/svg/sparkle-red.svg" class="sparkle-red no-drag">
             <img src="/static/svg/sparkle-green.svg" class="sparkle-green no-drag">
         </div>
-        <p class="intro-text mt-8">Turn any Git repository into a simple text digest of its codebase.</p>
-        <p class="intro-text mt-0">This is useful for feeding a codebase into any LLM.</p>
+        <p class="intro-text mt-8">{{ t('home.hero.tagline1') }}</p>
+        <p class="intro-text mt-0">{{ t('home.hero.tagline2') }}</p>
     </div>
     {% if error_message %}
         <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"
@@ -23,7 +23,18 @@
         {% include 'components/git_form.jinja' %}
     {% endwith %}
     <p class="text-gray-600 text-sm max-w-2xl mx-auto text-center mt-4">
-        You can also replace 'github.com' with 'repoingest.top' in any GitHub URL.
+        {{ t('app.note') }}
     </p>
     {% include 'components/result.jinja' %}
+
+    {# Recent jobs: resume background ingest tasks #}
+    <div id="recent-jobs" class="mt-8 hidden">
+        <div class="relative">
+            <div class="w-full h-full absolute inset-0 bg-gray-900 rounded-xl translate-y-2 translate-x-2"></div>
+            <div class="rounded-xl relative z-10 p-6 border-[3px] border-gray-900 bg-[#fff4da]">
+                <h2 class="text-lg font-bold text-gray-900 mb-3">{{ t('js.recent') }}</h2>
+                <ul id="recent-jobs-list" class="space-y-2"></ul>
+            </div>
+        </div>
+    </div>
 {% endblock %}
