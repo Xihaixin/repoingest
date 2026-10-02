@@ -11,6 +11,7 @@
 | [`03-log-analysis-and-proposal.md`](./03-log-analysis-and-proposal.md) | 运行期日志分析（7 个问题）+ 日志记录点/记录信息提案 |
 | [`04-home-and-i18n-design.md`](./04-home-and-i18n-design.md) | Home 落地页 + 多语言（i18n）设计方案 |
 | [`05-job-resume-design.md`](./05-job-resume-design.md) | 处理任务状态保持与恢复（Job Resume）设计方案 |
+| [`06-linux-deployment-update.md`](./06-linux-deployment-update.md) | Linux 服务器部署更新全流程：问题诊断、systemd 配置修复、uv 依赖同步、验证与收尾 |
 
 ## 变更文件清单
 
