@@ -11,36 +11,24 @@
             </div>
             {# Navigation #}
             <nav class="flex items-center space-x-6">
-                <a href="/" class="link-bounce text-gray-900">{{ t('nav.home') }}</a>
                 <a href="/app" class="link-bounce text-gray-900">{{ t('nav.app') }}</a>
-                <a href="/llms.txt" class="link-bounce flex items-center text-gray-900">
-                    <span class="badge-new">NEW</span>
-                    /llms.txt
-                </a>
                 {# Gitee link #}
                 <div class="flex items-center gap-2">
-                    <a href="https://gitee.com/xihaishen/repoingest"
+                    <a href="https://github.com/Xihaixin/repoingest"
                        target="_blank"
                        rel="noopener noreferrer"
                        class="link-bounce flex items-center gap-1.5 text-gray-900">
-                        <img src="/static/icons/gitee.svg" class="w-4 h-4" alt="Gitee logo">
-                        Gitee
+                        <img src="/static/icons/github.svg" class="w-4 h-4" alt="Github logo">
+                        Gihub
                     </a>
-                    {# Star counter #}
-                    <div class="no-drag flex items-center text-sm text-gray-600">
-                        <img src="/static/svg/github-star.svg"
-                             class="w-4 h-4 mr-1"
-                             alt="GitHub star icon">
-                        <span id="github-stars">0</span>
-                    </div>
                 </div>
                 {# Language switcher #}
                 <div class="flex items-center">
                     <select id="lang-select"
                             aria-label="{{ t('nav.lang') }}"
                             onchange="window.location = '/lang/' + this.value + '?next=' + encodeURIComponent(window.location.pathname + window.location.search)"
-                            class="cursor-pointer border-[3px] border-gray-900 rounded-sm bg-[#fff4da] text-sm font-medium text-gray-900 px-1.5 py-1 focus:outline-none">
-                        <option value="zh-CN" {% if lang == 'zh-CN' %}selected{% endif %}>中文</option>
+                            class="cursor-pointer border-[1px] border-[#e8dcc0] rounded-md bg-[#fff4da] text-sm font-medium text-gray-900 px-1.5 py-1 focus:outline-none">
+                        <option value="zh-CN" {% if lang == 'zh-CN' %}selected{% endif %}>ZH</option>
                         <option value="en" {% if lang == 'en' %}selected{% endif %}>EN</option>
                     </select>
                 </div>

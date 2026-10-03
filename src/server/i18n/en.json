@@ -3,9 +3,9 @@
   "meta.description": "Replace 'hub' with 'ingest' in any Git URL for a prompt-friendly text digest of the codebase.",
 
   "nav.home": "Home",
-  "nav.app": "App",
+  "nav.app": "Start",
   "nav.lang": "Language",
-  "nav.gitee": "Gitee",
+  "nav.gitee": "Github",
 
   "footer.version": "Version:",
   "footer.chrome": "Chrome Extension",

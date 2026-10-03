@@ -3,9 +3,9 @@
   "meta.description": "将任意 Git 地址中的 hub 替换为 ingest，即可获得适合大模型的代码库文本摘要。",
 
   "nav.home": "首页",
-  "nav.app": "工具",
+  "nav.app": "开始",
   "nav.lang": "语言",
-  "nav.gitee": "Gitee",
+  "nav.gitee": "Github",
 
   "footer.version": "版本：",
   "footer.chrome": "Chrome 扩展",
