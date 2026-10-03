@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
-
+from dotenv import load_dotenv
 from server.i18n import i18n_context
 
 MAX_DISPLAY_SIZE: int = 300_000
@@ -21,6 +21,8 @@ EXAMPLE_REPOS: List[Dict[str, str]] = [
     {"name": "Excalidraw", "url": "https://github.com/excalidraw/excalidraw"},
     {"name": "ApiAnalytics", "url": "https://github.com/tom-draper/api-analytics"},
 ]
+
+load_dotenv()
 
 # 版本与仓库配置
 APP_REPOSITORY = os.getenv(
@@ -46,8 +48,8 @@ def get_version_info() -> dict:
     version_link = APP_VERSION_URL
 
     # 如果未提供 URL，则回退到仓库根目录
-    if version_link == APP_REPOSITORY or not version_link:
-        version_link = f"{APP_REPOSITORY.rstrip('/')}/tree/main"
+    if not version_link:
+        version_link = APP_REPOSITORY
 
     return {
         "version": display_version,

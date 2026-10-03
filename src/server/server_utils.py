@@ -13,7 +13,6 @@ from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from gitingest.config import TMP_BASE_PATH
 from gitingest.utils.git_utils import ensure_git_installed
@@ -23,8 +22,39 @@ from server.server_config import DELETE_REPO_AFTER
 
 logger = get_logger("server_utils")
 
+
+def _rate_limit_key(request: Request) -> str:
+    """
+    返回速率限制的限流键（客户端 IP）。
+
+    默认的 ``slowapi.util.get_remote_address`` 直接使用 ``request.client.host``，
+    在反向代理（Nginx）之后该值恒为 ``127.0.0.1``，会导致**所有用户共用一个
+    限流桶**——一个用户触发限流，全员被拒。
+
+    这里改为优先取 ``X-Forwarded-For`` 的**最右侧**条目：它由直连的可信反向
+    代理追加，客户端无法伪造（伪造的条目只会落在更左侧）。该取值与 uvicorn
+    ``--proxy-headers`` 的语义一致。
+
+    参数
+    ----------
+    request : Request
+        传入的 HTTP 请求。
+
+    返回
+    -------
+    str
+        用于限流计数的客户端 IP。
+    """
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        ip = forwarded.split(",")[-1].strip()
+        if ip:
+            return ip
+    return request.client.host if request.client else "unknown"
+
+
 # 初始化速率限制器
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=_rate_limit_key)
 
 
 async def rate_limit_exception_handler(request: Request, exc: Exception) -> Response:
