@@ -1,5 +1,9 @@
 # repoingest
 
+[![PyPI](https://img.shields.io/pypi/v/repoingest.svg)](https://pypi.org/project/repoingest/)
+[![Python versions](https://img.shields.io/pypi/pyversions/repoingest.svg)](https://pypi.org/project/repoingest/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 > 将任意 Git 仓库转换为适合大型语言模型（LLM）提示的文本摘要 —— 一个可自托管的 Web 服务。
 
 repoingest 让「把代码库喂给大语言模型」变得简单：粘贴一个 Git 仓库地址（或 `owner/repo`），即可获得包含**目录结构**与**文件内容**的文本摘要，并估算 **token 数量**，可直接粘贴进 LLM 提示。

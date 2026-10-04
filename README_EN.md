@@ -1,5 +1,9 @@
 # repoingest
 
+[![PyPI](https://img.shields.io/pypi/v/repoingest.svg)](https://pypi.org/project/repoingest/)
+[![Python versions](https://img.shields.io/pypi/pyversions/repoingest.svg)](https://pypi.org/project/repoingest/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 > Convert any Git repository into a text digest optimized for Large Language Model (LLM) prompts — a self-hostable web service.
 
 repoingest makes it easy to feed a codebase to an LLM: paste a Git repository URL (or `owner/repo`) and get a text digest containing the **directory structure** and **file contents**, along with a **token estimate** you can paste straight into a prompt.
