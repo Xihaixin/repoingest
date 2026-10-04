@@ -5,6 +5,12 @@ function submitExample(repoName) {
         input.value = repoName;
         input.focus();
     }
+
+    if (typeof window.track === 'function') {
+        window.track('example_clicked', {
+            repo_host: typeof repoHostFromInput === 'function' ? repoHostFromInput(repoName) : 'unknown'
+        });
+    }
 }
 
 // Make it visible to inline onclick handlers

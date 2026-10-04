@@ -1,3 +1,28 @@
+// Analytics no-op fallback: overridden by analytics.js when PostHog is enabled.
+if (typeof window.track !== 'function') {
+    window.track = function () {};
+}
+
+// Best-effort extraction of a repository host (never the full URL).
+function repoHostFromInput(input) {
+    if (!input) {return 'unknown';}
+
+    const value = String(input).trim();
+    const ssh = value.match(/^[^@]+@([^:/]+)[:/]/);
+
+    if (ssh) {return ssh[1];}
+
+    if (value.includes('://')) {
+        try {return new URL(value).hostname || 'unknown';} catch (e) {return 'unknown';}
+    }
+
+    const first = value.split('/')[0];
+
+    if (first.includes('.')) {return first;}
+
+    return 'unknown';
+}
+
 function getFileName(element) {
     const indentSize = 4;
     let path = '';
@@ -178,6 +203,7 @@ function stopPoll(jobId) {
 }
 
 function pollJob(jobId) {
+    window.currentJobId = jobId;
     const timers = window.pollTimers || (window.pollTimers = {});
     const submitButton = document.querySelector('#ingestForm button[type="submit"]');
 
@@ -288,6 +314,7 @@ function renderJobList(jobs) {
 }
 
 function openJob(job) {
+    window.currentJobId = job.id;
     const submitButton = document.querySelector('#ingestForm button[type="submit"]');
 
     if (job.status === 'running') {
@@ -495,6 +522,13 @@ function handleSubmit(event, showLoadingSpinner = false) {
 
             // 202: job created -> poll until done/error (keeps loading state)
             if (data.job_id) {
+                window.track('ingest_submitted', {
+                    job_id: data.job_id,
+                    repo_host: repoHostFromInput(json_data.input_text),
+                    pattern_type: json_data.pattern_type,
+                    has_token: Boolean(json_data.token),
+                    max_file_size_kb: Number(json_data.max_file_size) || null
+                });
                 loadRecentJobs(false);
                 pollJob(data.job_id);
 
@@ -526,6 +560,7 @@ function copyFullDigest() {
             </svg>
             ${I18N.t('js.copied')}
         `;
+        window.track('digest_copied', { job_id: window.currentJobId || null });
 
         setTimeout(() => {
             button.innerHTML = originalText;
@@ -566,6 +601,8 @@ function downloadFullDigest() {
     // Clean up
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    window.track('digest_downloaded', { job_id: window.currentJobId || null });
 
     // Update button to show success
     button.innerHTML = `

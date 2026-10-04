@@ -35,6 +35,16 @@ function toggleAccessSettings() {
 document.addEventListener('DOMContentLoaded', () => {
     toggleAccessSettings();
     changePattern();
+
+    const accessToggle = document.getElementById('showAccessSettings');
+
+    if (accessToggle) {
+        accessToggle.addEventListener('change', (event) => {
+            if (typeof window.track === 'function') {
+                window.track('private_repo_toggled', { enabled: event.target.checked });
+            }
+        });
+    }
 });
 
 
