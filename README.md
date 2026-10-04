@@ -191,7 +191,7 @@ repoingest 的核心仓库解析与摘要能力（位于 `src/repoingest/`，涵
 本项目采用 **MIT 许可证**，详见 [LICENSE](./LICENSE)。
 
 - 衍生自 [gitingest](https://github.com/coderamp-labs/gitingest) 的部分：Copyright © 2024 Romain Courtois
-- repoingest 新增与修改的部分：Copyright © 2025 溪海莘
+- repoingest 新增与修改的部分：Copyright © 2025 haiShen
 
 ## 🤝 贡献方式
 

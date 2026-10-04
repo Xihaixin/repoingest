@@ -5,7 +5,7 @@ description = "Convert any Git repository into a text digest optimized for LLM p
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
-authors = [{ name = "溪海莘" }]
+authors = [{ name = "haiShen" }]
 keywords = ["git", "llm", "ingest", "digest", "repository", "codebase", "ai", "cli"]
 classifiers = [
     "Development Status :: 3 - Alpha",

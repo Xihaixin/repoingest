@@ -191,7 +191,7 @@ repoingest is therefore an independent **derivative work**, and we respect and c
 This project is released under the **MIT License**. See [LICENSE](./LICENSE).
 
 - Portions derived from [gitingest](https://github.com/coderamp-labs/gitingest): Copyright © 2024 Romain Courtois
-- New and modified portions of repoingest: Copyright © 2025 溪海莘
+- New and modified portions of repoingest: Copyright © 2025 haiShen
 
 ## 🤝 Contributing
 
