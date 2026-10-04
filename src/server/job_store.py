@@ -20,7 +20,7 @@ logger = get_logger("job_store")
 JOB_TTL_SECONDS = 2 * 60 * 60  # 2 hours
 
 # 每个 uid 保留的最大任务数（限制内存占用）。
-MAX_JOBS_PER_UID = 20
+MAX_JOBS_PER_UID = 5
 
 
 class JobStore:
