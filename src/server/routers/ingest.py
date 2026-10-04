@@ -48,6 +48,33 @@ def _repo_host(value: str) -> str:
     return first if "." in first else "unknown"
 
 
+def _repo_slug(value: str) -> str:
+    """尽力从仓库输入中提取 ``owner/repo``（剥离协议、主机、凭据与 .git）。"""
+    if not value:
+        return "unknown"
+
+    text = str(value).strip()
+    ssh = re.match(r"^[^@]+@[^:/]+:(.+)$", text)
+    if ssh:
+        path = ssh.group(1)
+    elif "://" in text:
+        try:
+            path = urlparse(text).path
+        except ValueError:
+            return "unknown"
+    else:
+        path = text
+
+    parts = [p for p in path.strip("/").split("/") if p]
+    if len(parts) >= 3 and "." in parts[0]:
+        parts = parts[1:]
+    if parts and parts[-1].endswith(".git"):
+        parts[-1] = parts[-1][:-4]
+    if len(parts) >= 2:
+        return f"{parts[0]}/{parts[1]}"
+    return "unknown"
+
+
 def _parse_token_estimate(raw: str) -> int:
     """把 ``1.2k`` / ``1.2M`` / ``123`` 形式的估算值转为整数。"""
     multiplier = 1
@@ -83,6 +110,7 @@ def _ingest_base_properties(job_id: str, ingest_request: IngestRequest) -> dict[
     return {
         "job_id": job_id,
         "repo_host": _repo_host(ingest_request.input_text),
+        "repo_slug": _repo_slug(ingest_request.input_text),
         "pattern_type": ingest_request.pattern_type.value,
         "max_file_size_kb": ingest_request.max_file_size,
         "has_token": bool(ingest_request.token),
@@ -109,6 +137,7 @@ async def _run_job(job_id: str, uid: str, ingest_request: IngestRequest) -> None
         completed_props: dict[str, Any] = {
             "job_id": job_id,
             "repo_host": base_props["repo_host"],
+            "repo_slug": result.short_repo_url or base_props["repo_slug"],
             "duration_ms": round((time.perf_counter() - started) * 1000),
         }
         completed_props.update(_summary_metrics(result.summary))

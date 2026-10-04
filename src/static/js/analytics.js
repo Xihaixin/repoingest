@@ -8,6 +8,15 @@
         return;
     }
 
+    // Honor Do Not Track / Global Privacy Control (basic opt-out).
+    const dnt = navigator.doNotTrack === '1'
+        || navigator.doNotTrack === 'yes'
+        || navigator.globalPrivacyControl === true;
+
+    if (dnt) {
+        return;
+    }
+
     let uid = '';
 
     if (typeof ensureUid === 'function') {
@@ -21,7 +30,18 @@
     const initOptions = {
         api_host: cfg.api_host,
         person_profiles: 'identified_only',
-        disable_session_recording: true,
+        autocapture: cfg.autocapture !== false,
+        disable_session_recording: cfg.session_replay !== true,
+        // Strip query strings (e.g. /app?repo=<url>) so repo URLs never leak.
+        sanitize_properties: function (properties) {
+            ['$current_url', '$referrer'].forEach(function (key) {
+                if (typeof properties[key] === 'string' && properties[key].indexOf('?') !== -1) {
+                    properties[key] = properties[key].split('?')[0];
+                }
+            });
+
+            return properties;
+        },
     };
 
     if (uid) {

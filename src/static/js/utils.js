@@ -23,6 +23,35 @@ function repoHostFromInput(input) {
     return 'unknown';
 }
 
+// Best-effort extraction of "owner/repo" (no scheme, host, credentials or token).
+function repoSlugFromInput(input) {
+    if (!input) {return 'unknown';}
+
+    const value = String(input).trim();
+    const ssh = value.match(/^[^@]+@[^:/]+:(.+)$/);
+    let path;
+
+    if (ssh) {
+        path = ssh[1];
+    } else if (value.includes('://')) {
+        try {path = new URL(value).pathname;} catch (e) {return 'unknown';}
+    } else {
+        path = value;
+    }
+
+    let parts = path.split('/').filter(Boolean);
+
+    if (parts.length >= 3 && parts[0].includes('.')) {
+        parts = parts.slice(1);
+    }
+
+    if (parts.length && parts[parts.length - 1].endsWith('.git')) {
+        parts[parts.length - 1] = parts[parts.length - 1].slice(0, -4);
+    }
+
+    return parts.length >= 2 ? parts[0] + '/' + parts[1] : 'unknown';
+}
+
 function getFileName(element) {
     const indentSize = 4;
     let path = '';
@@ -525,6 +554,7 @@ function handleSubmit(event, showLoadingSpinner = false) {
                 window.track('ingest_submitted', {
                     job_id: data.job_id,
                     repo_host: repoHostFromInput(json_data.input_text),
+                    repo_slug: repoSlugFromInput(json_data.input_text),
                     pattern_type: json_data.pattern_type,
                     has_token: Boolean(json_data.token),
                     max_file_size_kb: Number(json_data.max_file_size) || null

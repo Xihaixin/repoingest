@@ -40,6 +40,9 @@ APP_VERSION_URL = os.getenv(
 POSTHOG_ENABLED = os.getenv("POSTHOG_ENABLED", "0") == "1"
 POSTHOG_API_KEY = os.getenv("POSTHOG_API_KEY", "")
 POSTHOG_HOST = os.getenv("POSTHOG_HOST", "https://us.i.posthog.com")
+# 前端可调项（免费版额度紧张时可按需关闭）
+POSTHOG_AUTOCAPTURE = os.getenv("POSTHOG_AUTOCAPTURE", "1") == "1"
+POSTHOG_SESSION_REPLAY = os.getenv("POSTHOG_SESSION_REPLAY", "0") == "1"
 
 
 def get_posthog_config() -> dict[str, Any]:
@@ -48,6 +51,8 @@ def get_posthog_config() -> dict[str, Any]:
         "enabled": POSTHOG_ENABLED and bool(POSTHOG_API_KEY),
         "api_key": POSTHOG_API_KEY,
         "api_host": POSTHOG_HOST,
+        "autocapture": POSTHOG_AUTOCAPTURE,
+        "session_replay": POSTHOG_SESSION_REPLAY,
     }
 
 
