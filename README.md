@@ -121,6 +121,18 @@ summary, tree, content = await ingest_async("path/to/directory")
 | `REPOINGEST_PROBE_TIMEOUT` | `10` | 仓库存在性探测超时（秒） |
 | `REPOINGEST_SLOW_REQUEST_MS` | `30000` | 慢请求告警阈值（毫秒） |
 
+## 📊 用户行为分析（PostHog）
+
+项目集成 [PostHog](https://posthog.com) 做用户行为检测与分析。分析功能通过环境变量控制，默认关闭（本地开发不采集、不加载脚本）：
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `POSTHOG_ENABLED` | `0` | 总开关：`1` 启用，`0` 关闭（关闭时不加载任何 PostHog 脚本、无外部请求） |
+| `POSTHOG_API_KEY` | 空 | PostHog 项目 Token（`phc_...`，可公开嵌入前端的发布密钥） |
+| `POSTHOG_HOST` | `https://us.i.posthog.com` | 采集入口，自托管时改为自建地址 |
+
+前端以浏览器 cookie `repoingest_uid` 作为 PostHog `distinct_id`，与后端后台任务事件共用同一身份，从而构建「访问 → 提交 → 完成」的完整漏斗。分析数据不包含 token、仓库正文与完整私有 URL。
+
 ## 🤝 贡献方式
 
 ### 非技术类贡献

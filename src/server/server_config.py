@@ -33,6 +33,23 @@ APP_VERSION_URL = os.getenv(
     "APP_VERSION_URL", "https://gitee.com/xihaishen/repoingest"
 )
 
+# PostHog 分析配置
+# 说明：project token 属于可公开嵌入前端的「发布密钥」，配置化是为了
+# 环境隔离与可替换（未来自托管），而非保密。真正的机密（Personal API Key）
+# 绝不引入本项目。
+POSTHOG_ENABLED = os.getenv("POSTHOG_ENABLED", "0") == "1"
+POSTHOG_API_KEY = os.getenv("POSTHOG_API_KEY", "")
+POSTHOG_HOST = os.getenv("POSTHOG_HOST", "https://us.i.posthog.com")
+
+
+def get_posthog_config() -> dict[str, Any]:
+    """返回前端所需的 PostHog 配置（未启用或缺少 key 时 ``enabled=False``）。"""
+    return {
+        "enabled": POSTHOG_ENABLED and bool(POSTHOG_API_KEY),
+        "api_key": POSTHOG_API_KEY,
+        "api_host": POSTHOG_HOST,
+    }
+
 
 def get_version_info() -> dict:
     """获取版本信息，包括展示版本和链接。
@@ -69,5 +86,6 @@ def render_template(name: str, request: Request, **context: Any):
     ``{{ t('some.key') }}``。
     """
     ctx = i18n_context(request)
+    ctx["posthog"] = get_posthog_config()
     ctx.update(context)
     return templates.TemplateResponse(name, ctx)

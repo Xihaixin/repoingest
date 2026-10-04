@@ -67,9 +67,3 @@
 
     e.__SV = 1;
 }(document, window.posthog || []);
-
-/* Initialise PostHog */
-posthog.init('phc_9aNpiIVH2zfTWeY84vdTWxvrJRCQQhP5kcVDXUvcdou', {
-    api_host: 'https://eu.i.posthog.com',
-    person_profiles: 'always',
-});

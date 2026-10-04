@@ -71,6 +71,17 @@
         {# Scripts #}
         <script defer src="/static/js/index.js"></script>
         <script defer src="/static/js/utils.js"></script>
-        <script defer src="/static/js/posthog.js"></script>
+        {% if posthog and posthog.enabled %}
+            {# PostHog 配置（由 server_config.get_posthog_config 注入） #}
+            <script>
+                window.POSTHOG_CONFIG = {
+                    api_key: {{ posthog.api_key | tojson }},
+                    api_host: {{ posthog.api_host | tojson }},
+                };
+            </script>
+            {# 顺序不可颠倒：loader → analytics（依赖 utils.js 的 ensureUid） #}
+            <script defer src="/static/js/posthog.js"></script>
+            <script defer src="/static/js/analytics.js"></script>
+        {% endif %}
     </body>
 </html>

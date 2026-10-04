@@ -12,6 +12,7 @@
 | [`04-home-and-i18n-design.md`](./04-home-and-i18n-design.md) | Home 落地页 + 多语言（i18n）设计方案 |
 | [`05-job-resume-design.md`](./05-job-resume-design.md) | 处理任务状态保持与恢复（Job Resume）设计方案 |
 | [`06-linux-deployment-update.md`](./06-linux-deployment-update.md) | Linux 服务器部署更新全流程：问题诊断、systemd 配置修复、uv 依赖同步、验证与收尾 |
+| [`07-posthog-analytics-design.md`](./07-posthog-analytics-design.md) | PostHog 用户行为分析设计方案：配置化（env + 模板注入）、以 `repoingest_uid` 作 distinct_id 打通前后端、事件字典、隐私与免费版约束 |
 
 ## 变更文件清单
 

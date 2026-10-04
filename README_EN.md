@@ -98,6 +98,18 @@ If deploying on a domain, specify allowed hostnames via the `ALLOWED_HOSTS` envi
    ALLOWED_HOSTS="example.com, localhost, 127.0.0.1"
    ```
 
+## 📊 User Analytics (PostHog)
+
+The project integrates [PostHog](https://posthog.com) for user behavior tracking and analytics. Analytics is controlled by environment variables and is disabled by default (no scripts loaded, no outbound requests in local development):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTHOG_ENABLED` | `0` | Master switch: `1` enabled, `0` disabled |
+| `POSTHOG_API_KEY` | empty | PostHog project token (`phc_...`, a publishable key safe to embed in the frontend) |
+| `POSTHOG_HOST` | `https://us.i.posthog.com` | Ingestion endpoint; point to a self-hosted instance if needed |
+
+The frontend uses the `repoingest_uid` browser cookie as the PostHog `distinct_id`, sharing the same identity as backend background-job events to build a full "visit → submit → complete" funnel. Analytics data never includes tokens, repository contents, or full private URLs.
+
 ## 🤝 Contributing
 
 ### Non-Technical Contributions
