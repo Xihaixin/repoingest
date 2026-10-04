@@ -7,7 +7,7 @@ from typing import List
 import git
 from git import GitCommandError, RemoteProgress
 
-from gitingest.utils.logger import get_logger
+from repoingest.utils.logger import get_logger
 
 logger = get_logger("git_utils")
 

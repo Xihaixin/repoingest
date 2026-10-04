@@ -2,10 +2,10 @@
 
 from typing import Optional
 
-from gitingest.cloning import clone_repo, validate_github_token
-from gitingest.ingestion import ingest_query
-from gitingest.query_parsing import IngestionQuery, parse_query
-from gitingest.utils.logger import get_logger
+from repoingest.cloning import clone_repo, validate_github_token
+from repoingest.ingestion import ingest_query
+from repoingest.query_parsing import IngestionQuery, parse_query
+from repoingest.utils.logger import get_logger
 from server.models import IngestErrorResponse, IngestResponse, IngestSuccessResponse, PatternType
 from server.server_config import MAX_DISPLAY_SIZE
 

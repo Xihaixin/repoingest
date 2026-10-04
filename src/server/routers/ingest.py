@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
-from gitingest.utils.logger import get_logger
+from repoingest.utils.logger import get_logger
 from server import analytics
 from server.job_store import job_store, spawn
 from server.models import IngestRequest, JobCreatedResponse

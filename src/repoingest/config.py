@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from gitingest.utils.logger import get_logger
+from repoingest.utils.logger import get_logger
 
 logger = get_logger("config")
 
@@ -29,11 +29,11 @@ def get_temp_base_path() -> Path:
                 "Environment variable 'GITINGEST_TMP_PATH' not set, "
                 "using system temporary directory."
             )
-            tmp_base = Path(tempfile.gettempdir()) / "gitingest"
+            tmp_base = Path(tempfile.gettempdir()) / "repoingest"
         else:
-            tmp_base = Path(custom_tmp_path) / "gitingest"
+            tmp_base = Path(custom_tmp_path) / "repoingest"
     else:
-        tmp_base = Path(tempfile.gettempdir()) / "gitingest"
+        tmp_base = Path(tempfile.gettempdir()) / "repoingest"
 
     # 确保临时目录存在
     tmp_base.mkdir(parents=True, exist_ok=True)

@@ -3,12 +3,12 @@ import warnings
 from pathlib import Path
 from typing import Tuple
 
-from gitingest.config import MAX_DIRECTORY_DEPTH, MAX_FILES, MAX_TOTAL_SIZE_BYTES
-from gitingest.output_formatters import format_node
-from gitingest.query_parsing import IngestionQuery
-from gitingest.schemas import FileSystemNode, FileSystemNodeType, FileSystemStats
-from gitingest.utils.ingestion_utils import _should_exclude, _should_include
-from gitingest.utils.logger import get_logger
+from repoingest.config import MAX_DIRECTORY_DEPTH, MAX_FILES, MAX_TOTAL_SIZE_BYTES
+from repoingest.output_formatters import format_node
+from repoingest.query_parsing import IngestionQuery
+from repoingest.schemas import FileSystemNode, FileSystemNodeType, FileSystemStats
+from repoingest.utils.ingestion_utils import _should_exclude, _should_include
+from repoingest.utils.logger import get_logger
 
 try:
     import tomllib  # type: ignore[import]

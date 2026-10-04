@@ -14,7 +14,7 @@ from typing import Any, Optional
 
 from posthog import Posthog
 
-from gitingest.utils.logger import get_logger
+from repoingest.utils.logger import get_logger
 from server.server_config import POSTHOG_API_KEY, POSTHOG_ENABLED, POSTHOG_HOST
 
 logger = get_logger("analytics")

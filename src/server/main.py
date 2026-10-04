@@ -14,9 +14,9 @@ from slowapi.errors import RateLimitExceeded
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 # ── 日志必须在任何其他使用它的 import 之前配置 ──
-from gitingest.utils.logger import setup_logging, get_logger
+from repoingest.utils.logger import setup_logging, get_logger
 
-# 代码目录（包含 .env、server/、gitingest/）是解析相对日志路径的参考基准，
+# 代码目录（包含 .env、server/、repoingest/）是解析相对日志路径的参考基准，
 # 因此日志位置不依赖于进程的工作目录。
 _PKG_DIR = Path(__file__).resolve().parent.parent
 

@@ -5,7 +5,7 @@ from typing import Optional, Set
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from gitingest.config import MAX_FILE_SIZE
+from repoingest.config import MAX_FILE_SIZE
 
 @dataclass
 class CloneConfig:

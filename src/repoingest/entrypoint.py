@@ -3,10 +3,10 @@ import inspect
 import shutil
 from typing import Optional, Union, Set, Tuple
 
-from gitingest.cloning import clone_repo
-from gitingest.config import TMP_BASE_PATH
-from gitingest.ingestion import ingest_query
-from gitingest.query_parsing import IngestionQuery, parse_query
+from repoingest.cloning import clone_repo
+from repoingest.config import TMP_BASE_PATH
+from repoingest.ingestion import ingest_query
+from repoingest.query_parsing import IngestionQuery, parse_query
 
 async def ingest_async(
     source: str,

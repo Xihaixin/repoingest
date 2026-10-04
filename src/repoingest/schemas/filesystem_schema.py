@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 
-from gitingest.config import SEPARATOR
-from gitingest.utils.file_utils import get_preferred_encodings, is_text_file
-from gitingest.utils.notebook_utils import process_notebook
+from repoingest.config import SEPARATOR
+from repoingest.utils.file_utils import get_preferred_encodings, is_text_file
+from repoingest.utils.notebook_utils import process_notebook
 
 class FileSystemNodeType(Enum):
     """表示文件系统节点类型（目录或文件）的枚举。"""

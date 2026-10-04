@@ -121,8 +121,8 @@ systemctl cat repoingest   # 确认 ExecStart 已无 --workers 4
 systemctl stop repoingest
 systemctl status repoingest --no-pager | head -5   # 确认 inactive (dead)
 
-# 2. 同步依赖（按 uv.lock 锁定版本，不装 dev 依赖，需要联网访问 PyPI）
-cd /opt/repoingest && uv sync --frozen --no-dev
+# 2. 同步依赖（按 uv.lock 锁定版本，不装 dev 依赖，但需装 server 依赖组；需要联网访问 PyPI）
+cd /opt/repoingest && uv sync --frozen --no-dev --group server
 
 # 3. 确认关键依赖版本
 cd /opt/repoingest && uv pip list | grep -iE 'fastapi|uvicorn|jinja2|tiktoken|slowapi'

@@ -7,8 +7,8 @@
 
 from pathlib import Path
 
-from gitingest.ingestion import ingest_query
-from gitingest.query_parsing import IngestionQuery
+from repoingest.ingestion import ingest_query
+from repoingest.query_parsing import IngestionQuery
 
 def test_run_ingest_query(temp_directory: Path, sample_query: IngestionQuery) -> None:
     """运行摄取查询并验证摘要与文件内容。"""

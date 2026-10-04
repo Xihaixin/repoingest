@@ -2,9 +2,9 @@
 import tiktoken
 from typing import Optional, Tuple
 
-from gitingest.query_parsing import IngestionQuery
-from gitingest.schemas import FileSystemNode, FileSystemNodeType
-from gitingest.utils.logger import get_logger
+from repoingest.query_parsing import IngestionQuery
+from repoingest.schemas import FileSystemNode, FileSystemNodeType
+from repoingest.utils.logger import get_logger
 
 logger = get_logger("output_formatters")
 

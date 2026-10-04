@@ -12,7 +12,7 @@ import time
 import uuid
 from typing import Any, Awaitable, Optional
 
-from gitingest.utils.logger import get_logger
+from repoingest.utils.logger import get_logger
 
 logger = get_logger("job_store")
 

@@ -18,7 +18,7 @@ import uuid
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
-from gitingest.utils.logger import get_logger
+from repoingest.utils.logger import get_logger
 
 logger = get_logger("server.middleware")
 

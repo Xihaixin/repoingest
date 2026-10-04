@@ -599,7 +599,7 @@ POSTHOG_SESSION_REPLAY=0
 
 ```bash
 cd /opt/repoingest
-uv sync            # 按项目既有流程；确认已安装 posthog
+uv sync --group server     # server 依赖组（含 posthog）
 uv pip list | grep -i posthog
 ```
 

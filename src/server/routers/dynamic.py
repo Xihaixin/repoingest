@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from gitingest.utils.logger import get_logger
-from gitingest.utils.query_parser_utils import is_valid_repo_url_path
+from repoingest.utils.logger import get_logger
+from repoingest.utils.query_parser_utils import is_valid_repo_url_path
 from server.models import IngestRequest, PatternType
 from server.routers.ingest import create_ingest_job
 from server.routers_utils import require_uid

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Union, Optional
 from pydantic import BaseModel, Field, field_validator
 from server.server_config import MAX_FILE_SIZE_KB
 
-from gitingest.utils.compat_func import removesuffix
+from repoingest.utils.compat_func import removesuffix
 
 if TYPE_CHECKING:
     from server.form_types import IntForm, OptStrForm, StrForm

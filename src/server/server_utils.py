@@ -14,9 +14,9 @@ from fastapi.responses import Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from gitingest.config import TMP_BASE_PATH
-from gitingest.utils.git_utils import ensure_git_installed
-from gitingest.utils.logger import get_logger
+from repoingest.config import TMP_BASE_PATH
+from repoingest.utils.git_utils import ensure_git_installed
+from repoingest.utils.logger import get_logger
 from server import analytics
 from server.job_store import cancel_pending, cleanup_loop
 from server.server_config import DELETE_REPO_AFTER

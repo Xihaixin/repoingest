@@ -14,8 +14,8 @@
 
   "home.hero.title1": "对提示词友好",
   "home.hero.title2": "的代码库摘要",
-  "home.hero.tagline1": "将任意 Git 仓库转换为代码库的简洁文本摘要。",
-  "home.hero.tagline2": "方便你把代码库喂给任意大语言模型（LLM）。",
+  "home.hero.tagline1": "将任意 Git 仓库转换为代码库的简洁文本摘要",
+  "home.hero.tagline2": "方便你把代码库喂给任意大语言模型（LLM）",
   "home.cta": "立即开始",
   "home.cta.sub": "免费 · 无需注册",
 

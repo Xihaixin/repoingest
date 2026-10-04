@@ -9,10 +9,10 @@ from typing import Optional, Final
 
 from git import Repo, GitCommandError
 
-from gitingest.schemas import CloneConfig
-from gitingest.utils.git_utils import check_repo_exists, ensure_git_installed, CloneProgress
-from gitingest.utils.logger import get_logger
-from gitingest.utils.timeout_wrapper import async_timeout
+from repoingest.schemas import CloneConfig
+from repoingest.utils.git_utils import check_repo_exists, ensure_git_installed, CloneProgress
+from repoingest.utils.logger import get_logger
+from repoingest.utils.timeout_wrapper import async_timeout
 
 logger = get_logger("cloning")
 

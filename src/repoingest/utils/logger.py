@@ -11,7 +11,7 @@
 
 用法
 -----
-    from gitingest.utils.logger import get_logger
+    from repoingest.utils.logger import get_logger
 
     logger = get_logger("ingestion")
     logger.info("Processing started")
