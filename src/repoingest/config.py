@@ -25,7 +25,7 @@ def get_temp_base_path() -> Path:
     if platform.system() == "Windows":
         custom_tmp_path = os.getenv("GITINGEST_TMP_PATH")
         if not custom_tmp_path:
-            logger.warning(
+            logger.trace(
                 "Environment variable 'GITINGEST_TMP_PATH' not set, "
                 "using system temporary directory."
             )
