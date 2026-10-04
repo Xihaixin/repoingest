@@ -17,6 +17,7 @@ from slowapi.errors import RateLimitExceeded
 from gitingest.config import TMP_BASE_PATH
 from gitingest.utils.git_utils import ensure_git_installed
 from gitingest.utils.logger import get_logger
+from server import analytics
 from server.job_store import cancel_pending, cleanup_loop
 from server.server_config import DELETE_REPO_AFTER
 
@@ -103,6 +104,7 @@ async def lifespan(_: FastAPI):
         在后台任务运行期间将控制权交还给 FastAPI 应用程序。
     """
     logger.info("Starting server lifecycle: initializing Git check and cleanup tasks")
+    analytics.init()
     task = asyncio.create_task(_remove_old_repositories())
     job_cleanup_task = asyncio.create_task(cleanup_loop())
     yield
@@ -110,6 +112,7 @@ async def lifespan(_: FastAPI):
     task.cancel()
     job_cleanup_task.cancel()
     cancel_pending()
+    analytics.shutdown()
     try:
         await task
         await job_cleanup_task

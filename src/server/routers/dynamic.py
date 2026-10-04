@@ -1,12 +1,13 @@
 """该模块定义用于处理动态路径请求的 dynamic 路由。"""
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from gitingest.utils.logger import get_logger
 from gitingest.utils.query_parser_utils import is_valid_repo_url_path
 from server.models import IngestRequest, PatternType
 from server.routers.ingest import create_ingest_job
+from server.routers_utils import require_uid
 from server.server_config import render_template
 from server.server_utils import limiter
 
@@ -85,6 +86,7 @@ async def process_catch_all(
     pattern_type: PatternType = Form(...),
     pattern: str = Form(...),
     token: str = Form(""),
+    uid: str = Depends(require_uid),
 ) -> JSONResponse:
     """
     处理包含用户查询参数输入的表单提交。
@@ -129,5 +131,5 @@ async def process_catch_all(
         pattern=pattern,
         token=token,
     )
-    payload = await create_ingest_job(request, ingest_request)
+    payload = await create_ingest_job(uid, ingest_request)
     return JSONResponse(status_code=202, content=payload)
