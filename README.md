@@ -130,6 +130,10 @@ summary, tree, content = await ingest_async("path/to/directory")
 | `POSTHOG_ENABLED` | `0` | 总开关：`1` 启用，`0` 关闭（关闭时不加载任何 PostHog 脚本、无外部请求） |
 | `POSTHOG_API_KEY` | 空 | PostHog 项目 Token（`phc_...`，可公开嵌入前端的发布密钥） |
 | `POSTHOG_HOST` | `https://us.i.posthog.com` | 采集入口，自托管时改为自建地址 |
+| `POSTHOG_AUTOCAPTURE` | `1` | 自动捕获：额度紧张时可设为 `0`，仅保留显式事件 |
+| `POSTHOG_SESSION_REPLAY` | `0` | 会话回放：默认关闭（隐私与额度） |
+
+此外，前端会遵循浏览器的 Do Not Track / Global Privacy Control：开启时自动退出采集。
 
 前端以浏览器 cookie `repoingest_uid` 作为 PostHog `distinct_id`，与后端后台任务事件共用同一身份，从而构建「访问 → 提交 → 完成」的完整漏斗。分析数据不包含 token、仓库正文与完整私有 URL。
 

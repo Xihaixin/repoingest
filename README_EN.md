@@ -107,6 +107,10 @@ The project integrates [PostHog](https://posthog.com) for user behavior tracking
 | `POSTHOG_ENABLED` | `0` | Master switch: `1` enabled, `0` disabled |
 | `POSTHOG_API_KEY` | empty | PostHog project token (`phc_...`, a publishable key safe to embed in the frontend) |
 | `POSTHOG_HOST` | `https://us.i.posthog.com` | Ingestion endpoint; point to a self-hosted instance if needed |
+| `POSTHOG_AUTOCAPTURE` | `1` | Autocapture: set to `0` to keep only explicit events when quota is tight |
+| `POSTHOG_SESSION_REPLAY` | `0` | Session Replay: disabled by default (privacy and quota) |
+
+The frontend also honors the browser's Do Not Track / Global Privacy Control signals and opts out automatically when enabled.
 
 The frontend uses the `repoingest_uid` browser cookie as the PostHog `distinct_id`, sharing the same identity as backend background-job events to build a full "visit → submit → complete" funnel. Analytics data never includes tokens, repository contents, or full private URLs.
 
