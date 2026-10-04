@@ -30,7 +30,7 @@ APP_REPOSITORY = os.getenv(
 )
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 APP_VERSION_URL = os.getenv(
-    "APP_VERSION_URL", "https://gitee.com/xihaishen/repoingest"
+    "APP_VERSION_URL", "https://pypi.org/project/repoingest/"
 )
 
 # PostHog 分析配置
