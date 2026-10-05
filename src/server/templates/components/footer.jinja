@@ -8,17 +8,12 @@
                                 'icons/python.svg',
                                 t('footer.python')) }}
             </div>
-            {# Middle column - Version information #}
+            {# Middle column - ICP filing information #}
             <div class="flex justify-center">
-                <span>{{ t('footer.version') }}&nbsp;</span>
-                {% if version != "unknown" %}
-                    <a href="{{ version_link }}"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="text-blue-600 hover:text-blue-800 underline">{{ version }}</a>
-                {% else %}
-                    <span>{{ version }}</span>
-                {% endif %}
+                <a href="https://beian.miit.gov.cn"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="hover:underline">{{ t('footer.icp') }}</a>
             </div>
             {# Right column - Discord #}
             <div class="flex justify-end">
